@@ -16,9 +16,18 @@ cd resto-hub
 ```
 
 2. Start all services:
+
+**Option 1: Start all services at once (logs from all containers):**
 ```bash
 docker compose up --build
 ```
+
+**Option 2: Start services sequentially (see logs one by one):**
+```powershell
+.\start-containers.ps1
+```
+
+This script will start containers one by one, showing logs for each container sequentially. Press Ctrl+C to move to the next container.
 
 That's it! All services will be built and started automatically.
 

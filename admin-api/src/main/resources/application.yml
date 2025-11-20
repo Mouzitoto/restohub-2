@@ -20,6 +20,19 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:liquibase/changelog/db.changelog-master.xml
+  
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    from: ${MAIL_FROM:no-reply@restohub.com}
 
 server:
   port: ${SERVER_PORT:8082}
@@ -32,9 +45,27 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
 
 logging:
   level:
     root: INFO
     com.restohub: DEBUG
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-here-must-be-at-least-256-bits-long-for-security}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:300}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:3600}
+
+cors:
+  allowed-origin: ${ADMIN_WEB_URL:http://localhost:3001}
 
