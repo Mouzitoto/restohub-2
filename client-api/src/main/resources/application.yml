@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: resto-hub-client-api
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/restohub}
+    username: ${DB_USER:restohub}
+    password: ${DB_PASSWORD:restohub}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  liquibase:
+    enabled: false
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: INFO
+    com.restohub: DEBUG
+

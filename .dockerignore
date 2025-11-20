@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs
+
+# Dependencies (will be installed in Docker)
+node_modules
+target
+.m2
+
+# Build artifacts (will be built in Docker)
+dist
+build
+*.jar
+
+# Environment
+.env
+.env.local
+
+# Temporary
+*.tmp
+*.temp
+.cache
+

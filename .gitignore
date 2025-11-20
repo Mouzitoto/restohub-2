@@ -29,3 +29,21 @@ dist/
 *.temp
 .cache/
 
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Spring Boot
+*.jar
+!**/target/*.jar
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.sqlite
+
