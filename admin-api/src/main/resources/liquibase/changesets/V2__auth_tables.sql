@@ -31,3 +31,4 @@ CREATE INDEX idx_password_reset_codes_user_id ON password_reset_codes(user_id);
 CREATE INDEX idx_password_reset_codes_code ON password_reset_codes(code);
 CREATE INDEX idx_password_reset_codes_expires_at ON password_reset_codes(expires_at);
 
+

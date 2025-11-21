@@ -45,9 +45,51 @@ public class GlobalExceptionHandler {
                    "INVALID_PASSWORD".equals(exceptionName) ||
                    "INVALID_RESET_CODE".equals(exceptionName) ||
                    "RESET_CODE_EXPIRED".equals(exceptionName) ||
-                   "RESET_CODE_ALREADY_USED".equals(exceptionName)) {
+                   "RESET_CODE_ALREADY_USED".equals(exceptionName) ||
+                   "FILE_REQUIRED".equals(exceptionName) ||
+                   "FILE_TOO_LARGE".equals(exceptionName) ||
+                   "INVALID_FILE_TYPE".equals(exceptionName) ||
+                   "INVALID_IMAGE".equals(exceptionName) ||
+                   "IMAGE_UPLOAD_ERROR".equals(exceptionName) ||
+                   "RESTAURANT_IN_USE".equals(exceptionName) ||
+                   "IMAGE_IN_USE".equals(exceptionName) ||
+                   "CATEGORY_NAME_EXISTS".equals(exceptionName) ||
+                   "CATEGORY_IN_USE".equals(exceptionName) ||
+                   "FLOOR_NUMBER_EXISTS".equals(exceptionName) ||
+                   "FLOOR_IN_USE".equals(exceptionName) ||
+                   "ROOM_IN_USE".equals(exceptionName) ||
+                   "TABLE_NUMBER_EXISTS".equals(exceptionName) ||
+                   "TABLE_HAS_ACTIVE_BOOKINGS".equals(exceptionName) ||
+                   "BOOKING_STATUS_CODE_EXISTS".equals(exceptionName) ||
+                   "BOOKING_STATUS_IN_USE".equals(exceptionName) ||
+                   "INVALID_DATE_RANGE".equals(exceptionName) ||
+                   "RECURRENCE_TYPE_REQUIRED".equals(exceptionName) ||
+                   "INVALID_RECURRENCE_TYPE".equals(exceptionName) ||
+                   "RECURRENCE_DAY_OF_WEEK_REQUIRED".equals(exceptionName) ||
+                   "INVALID_RECURRENCE_DAY_OF_WEEK".equals(exceptionName) ||
+                   "RECURRENCE_FIELDS_NOT_ALLOWED".equals(exceptionName) ||
+                   "UNSUPPORTED_EXPORT_FORMAT".equals(exceptionName) ||
+                   "INVALID_EXPORT_TYPE".equals(exceptionName) ||
+                   "EMAIL_ALREADY_EXISTS".equals(exceptionName) ||
+                   "MANAGER_MUST_HAVE_RESTAURANTS".equals(exceptionName) ||
+                   "CANNOT_MODIFY_SELF".equals(exceptionName) ||
+                   "CANNOT_DELETE_SELF".equals(exceptionName) ||
+                   "CANNOT_DEACTIVATE_SELF".equals(exceptionName)) {
             status = HttpStatus.BAD_REQUEST;
-        } else if ("USER_NOT_FOUND".equals(exceptionName)) {
+        } else if ("USER_NOT_FOUND".equals(exceptionName) ||
+                   "RESTAURANT_NOT_FOUND".equals(exceptionName) ||
+                   "IMAGE_NOT_FOUND".equals(exceptionName) ||
+                   "CATEGORY_NOT_FOUND".equals(exceptionName) ||
+                   "MENU_ITEM_NOT_FOUND".equals(exceptionName) ||
+                   "FLOOR_NOT_FOUND".equals(exceptionName) ||
+                   "ROOM_NOT_FOUND".equals(exceptionName) ||
+                   "TABLE_NOT_FOUND".equals(exceptionName) ||
+                   "BOOKING_STATUS_NOT_FOUND".equals(exceptionName) ||
+                   "SUBSCRIPTION_TYPE_NOT_FOUND".equals(exceptionName) ||
+                   "PROMOTION_NOT_FOUND".equals(exceptionName) ||
+                   "PROMOTION_TYPE_NOT_FOUND".equals(exceptionName) ||
+                   "CLIENT_NOT_FOUND".equals(exceptionName) ||
+                   "ROLE_NOT_FOUND".equals(exceptionName)) {
             status = HttpStatus.NOT_FOUND;
         }
         
@@ -134,6 +176,49 @@ public class GlobalExceptionHandler {
             case "RESET_CODE_EXPIRED" -> "Код восстановления истек";
             case "RESET_CODE_ALREADY_USED" -> "Код восстановления уже использован";
             case "USER_NOT_FOUND" -> "Пользователь не найден";
+            case "RESTAURANT_NOT_FOUND" -> "Ресторан не найден";
+            case "RESTAURANT_IN_USE" -> "Ресторан используется и не может быть удален";
+            case "IMAGE_NOT_FOUND" -> "Изображение не найдено";
+            case "IMAGE_IN_USE" -> "Изображение используется и не может быть удалено";
+            case "FILE_REQUIRED" -> "Файл обязателен";
+            case "FILE_TOO_LARGE" -> "Файл слишком большой";
+            case "INVALID_FILE_TYPE" -> "Неверный тип файла";
+            case "INVALID_IMAGE" -> "Неверный формат изображения";
+            case "IMAGE_UPLOAD_ERROR" -> "Ошибка при загрузке изображения";
+            case "CATEGORY_NOT_FOUND" -> "Категория не найдена";
+            case "CATEGORY_NAME_EXISTS" -> "Категория с таким названием уже существует";
+            case "CATEGORY_IN_USE" -> "Категория используется и не может быть удалена";
+            case "MENU_ITEM_NOT_FOUND" -> "Блюдо не найдено";
+            case "FLOOR_NOT_FOUND" -> "Этаж не найден";
+            case "FLOOR_NUMBER_EXISTS" -> "Этаж с таким номером уже существует для ресторана";
+            case "FLOOR_IN_USE" -> "Этаж используется и не может быть удален";
+            case "ROOM_NOT_FOUND" -> "Помещение не найдено";
+            case "ROOM_IN_USE" -> "Помещение используется и не может быть удалено";
+            case "TABLE_NOT_FOUND" -> "Стол не найден";
+            case "TABLE_NUMBER_EXISTS" -> "Стол с таким номером уже существует для помещения";
+            case "TABLE_HAS_ACTIVE_BOOKINGS" -> "Нельзя удалить стол: у стола есть активные бронирования";
+            case "BOOKING_STATUS_NOT_FOUND" -> "Статус бронирования не найден";
+            case "BOOKING_STATUS_CODE_EXISTS" -> "Статус с таким кодом уже существует";
+            case "BOOKING_STATUS_IN_USE" -> "Статус используется и не может быть удален";
+            case "SUBSCRIPTION_TYPE_NOT_FOUND" -> "Тип подписки не найден";
+            case "INVALID_DATE_RANGE" -> "Неверный диапазон дат: дата окончания должна быть после даты начала";
+            case "PROMOTION_NOT_FOUND" -> "Промо-событие не найдено";
+            case "PROMOTION_TYPE_NOT_FOUND" -> "Тип промо-события не найден";
+            case "RECURRENCE_TYPE_REQUIRED" -> "Тип повторения обязателен для повторяющихся событий";
+            case "INVALID_RECURRENCE_TYPE" -> "Неверный тип повторения. Допустимые значения: WEEKLY, MONTHLY, DAILY";
+            case "RECURRENCE_DAY_OF_WEEK_REQUIRED" -> "День недели обязателен для еженедельных повторений";
+            case "INVALID_RECURRENCE_DAY_OF_WEEK" -> "Неверный день недели. Должен быть от 1 до 7";
+            case "RECURRENCE_FIELDS_NOT_ALLOWED" -> "Поля повторения не допускаются для неповторяющихся событий";
+            case "CLIENT_NOT_FOUND" -> "Клиент не найден";
+            case "UNSUPPORTED_EXPORT_FORMAT" -> "Неподдерживаемый формат экспорта";
+            case "INVALID_EXPORT_TYPE" -> "Неверный тип данных для экспорта";
+            case "EXPORT_ERROR" -> "Ошибка при экспорте данных";
+            case "EMAIL_ALREADY_EXISTS" -> "Пользователь с таким email уже существует";
+            case "ROLE_NOT_FOUND" -> "Роль не найдена";
+            case "MANAGER_MUST_HAVE_RESTAURANTS" -> "Менеджер должен быть привязан хотя бы к одному ресторану";
+            case "CANNOT_MODIFY_SELF" -> "Нельзя изменять собственный профиль";
+            case "CANNOT_DELETE_SELF" -> "Нельзя удалить самого себя";
+            case "CANNOT_DEACTIVATE_SELF" -> "Нельзя деактивировать самого себя";
             default -> "Произошла ошибка";
         };
     }
