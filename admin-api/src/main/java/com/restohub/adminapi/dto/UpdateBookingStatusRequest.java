@@ -1,6 +1,5 @@
 package com.restohub.adminapi.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

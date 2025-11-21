@@ -1,6 +1,10 @@
 package com.restohub.adminapi.controller;
 
-import com.restohub.adminapi.dto.*;
+import com.restohub.adminapi.dto.CreateRoomRequest;
+import com.restohub.adminapi.dto.RoomListItemResponse;
+import com.restohub.adminapi.dto.RoomResponse;
+import com.restohub.adminapi.dto.PaginationResponse;
+import com.restohub.adminapi.dto.UpdateRoomRequest;
 import com.restohub.adminapi.service.RoomService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

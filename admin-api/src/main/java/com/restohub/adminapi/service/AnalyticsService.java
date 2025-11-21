@@ -19,10 +19,8 @@ public class AnalyticsService {
     private final RestaurantRepository restaurantRepository;
     private final BookingRepository bookingRepository;
     private final BookingPreOrderRepository bookingPreOrderRepository;
-    private final BookingStatusRepository bookingStatusRepository;
     private final ClientRepository clientRepository;
     private final TableRepository tableRepository;
-    private final MenuItemRepository menuItemRepository;
     private final ObjectMapper objectMapper;
     
     @Autowired
@@ -30,18 +28,14 @@ public class AnalyticsService {
             RestaurantRepository restaurantRepository,
             BookingRepository bookingRepository,
             BookingPreOrderRepository bookingPreOrderRepository,
-            BookingStatusRepository bookingStatusRepository,
             ClientRepository clientRepository,
             TableRepository tableRepository,
-            MenuItemRepository menuItemRepository,
             ObjectMapper objectMapper) {
         this.restaurantRepository = restaurantRepository;
         this.bookingRepository = bookingRepository;
         this.bookingPreOrderRepository = bookingPreOrderRepository;
-        this.bookingStatusRepository = bookingStatusRepository;
         this.clientRepository = clientRepository;
         this.tableRepository = tableRepository;
-        this.menuItemRepository = menuItemRepository;
         this.objectMapper = objectMapper;
     }
     

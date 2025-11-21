@@ -1,6 +1,11 @@
 package com.restohub.adminapi.controller;
 
-import com.restohub.adminapi.dto.*;
+import com.restohub.adminapi.dto.CreateTableRequest;
+import com.restohub.adminapi.dto.TableListItemResponse;
+import com.restohub.adminapi.dto.TableMapResponse;
+import com.restohub.adminapi.dto.TableResponse;
+import com.restohub.adminapi.dto.PaginationResponse;
+import com.restohub.adminapi.dto.UpdateTableRequest;
 import com.restohub.adminapi.service.TableService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

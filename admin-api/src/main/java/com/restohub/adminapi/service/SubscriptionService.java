@@ -40,7 +40,7 @@ public class SubscriptionService {
     
     public SubscriptionResponse getRestaurantSubscription(Long restaurantId) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Поиск активной подписки
