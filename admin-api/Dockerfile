@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
 
 # Copy source code and build
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn clean package
 
 # Runtime stage
 FROM eclipse-temurin:21-jre
