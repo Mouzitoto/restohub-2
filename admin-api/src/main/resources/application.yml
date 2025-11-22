@@ -36,6 +36,8 @@ spring:
 
 server:
   port: ${SERVER_PORT:8082}
+  servlet:
+    context-path: /admin-api
 
 management:
   endpoints:
@@ -53,13 +55,30 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ""  # Отключаем экспорт в Zipkin, используем только локальный трейсинг для MDC
 
 logging:
   level:
     root: INFO
     com.restohub: DEBUG
+    org.zalando.logbook: TRACE
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+logbook:
+  filter:
+    enabled: true
+  format:
+    style: json
+  predicate:
+    exclude:
+      - path: /actuator/**
+  obfuscate:
+    headers:
+      - Authorization
+      - X-API-Key
 
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-here-must-be-at-least-256-bits-long-for-security}

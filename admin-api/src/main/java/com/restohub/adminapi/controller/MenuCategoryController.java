@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/menu-category")
+@RequestMapping("/menu-category")
 public class MenuCategoryController {
     
     private final MenuCategoryService menuCategoryService;

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/r/{id}/menu-item")
+@RequestMapping("/r/{id}/menu-item")
 public class MenuItemController {
     
     private final MenuItemService menuItemService;

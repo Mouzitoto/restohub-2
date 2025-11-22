@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/booking-status")
+@RequestMapping("/booking-status")
 public class BookingStatusController {
     
     private final BookingStatusService bookingStatusService;

@@ -51,7 +51,7 @@ class RestaurantControllerTest {
         objectMapper = new ObjectMapper();
     }
 
-    // ========== POST /admin-api/r - создание ресторана ==========
+    // ========== POST /r - создание ресторана ==========
 
     @Test
     void testCreateRestaurant_Success() throws Exception {
@@ -91,7 +91,7 @@ class RestaurantControllerTest {
 
         // Act & Assert
         // Отключаем валидацию для упрощения тестов (в реальном приложении валидация работает)
-        mockMvc.perform(post("/admin-api/r")
+        mockMvc.perform(post("/r")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -128,7 +128,7 @@ class RestaurantControllerTest {
         // Этот тест нужно пропустить или использовать @WebMvcTest с полной конфигурацией
     }
 
-    // ========== GET /admin-api/r - список ресторанов ==========
+    // ========== GET /r - список ресторанов ==========
 
     @Test
     void testGetRestaurants_Success() throws Exception {
@@ -159,7 +159,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/r")
+        mockMvc.perform(get("/r")
                         .param("limit", "50")
                         .param("offset", "0")
                         .param("sortBy", "createdAt")
@@ -188,7 +188,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/r")
+        mockMvc.perform(get("/r")
                         .param("limit", "50")
                         .param("offset", "0")
                         .param("search", "test"))
@@ -210,7 +210,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/r")
+        mockMvc.perform(get("/r")
                         .param("limit", "50")
                         .param("offset", "0")
                         .param("isActive", "false"))
@@ -219,7 +219,7 @@ class RestaurantControllerTest {
         verify(restaurantService, times(1)).getRestaurants(50, 0, null, false, "createdAt", "desc");
     }
 
-    // ========== GET /admin-api/r/:id - получение ресторана ==========
+    // ========== GET /r/:id - получение ресторана ==========
 
     @Test
     void testGetRestaurant_Success() throws Exception {
@@ -245,7 +245,7 @@ class RestaurantControllerTest {
         when(restaurantService.getRestaurant(1L)).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/r/1"))
+        mockMvc.perform(get("/r/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("Test Restaurant"))
@@ -263,13 +263,13 @@ class RestaurantControllerTest {
                 .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/r/999"))
+        mockMvc.perform(get("/r/999"))
                 .andExpect(status().isNotFound());
 
         verify(restaurantService, times(1)).getRestaurant(999L);
     }
 
-    // ========== PUT /admin-api/r/:id - обновление ресторана ==========
+    // ========== PUT /r/:id - обновление ресторана ==========
 
     @Test
     void testUpdateRestaurant_Success() throws Exception {
@@ -292,7 +292,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(put("/admin-api/r/1")
+        mockMvc.perform(put("/r/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -322,7 +322,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(put("/admin-api/r/1")
+        mockMvc.perform(put("/r/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -348,7 +348,7 @@ class RestaurantControllerTest {
                 .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(put("/admin-api/r/1")
+        mockMvc.perform(put("/r/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -368,7 +368,7 @@ class RestaurantControllerTest {
                 .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
 
         // Act & Assert
-        mockMvc.perform(put("/admin-api/r/999")
+        mockMvc.perform(put("/r/999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
@@ -376,7 +376,7 @@ class RestaurantControllerTest {
         verify(restaurantService, times(1)).updateRestaurant(eq(999L), any(UpdateRestaurantRequest.class));
     }
 
-    // ========== DELETE /admin-api/r/:id - удаление ресторана ==========
+    // ========== DELETE /r/:id - удаление ресторана ==========
 
     @Test
     void testDeleteRestaurant_Success() throws Exception {
@@ -384,7 +384,7 @@ class RestaurantControllerTest {
         doNothing().when(restaurantService).deleteRestaurant(1L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/r/1"))
+        mockMvc.perform(delete("/r/1"))
                 .andExpect(status().isNoContent());
 
         verify(restaurantService, times(1)).deleteRestaurant(1L);
@@ -403,7 +403,7 @@ class RestaurantControllerTest {
                 .when(restaurantService).deleteRestaurant(999L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/r/999"))
+        mockMvc.perform(delete("/r/999"))
                 .andExpect(status().isNotFound());
 
         verify(restaurantService, times(1)).deleteRestaurant(999L);
@@ -416,7 +416,7 @@ class RestaurantControllerTest {
                 .when(restaurantService).deleteRestaurant(1L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/r/1"))
+        mockMvc.perform(delete("/r/1"))
                 .andExpect(status().isBadRequest());
 
         verify(restaurantService, times(1)).deleteRestaurant(1L);

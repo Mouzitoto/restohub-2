@@ -36,7 +36,7 @@ class ImageControllerTest {
                 .build();
     }
 
-    // ========== POST /admin-api/image - загрузка изображения ==========
+    // ========== POST /image - загрузка изображения ==========
 
     @Test
     void testUploadImage_Success() throws Exception {
@@ -56,7 +56,7 @@ class ImageControllerTest {
         when(imageService.uploadImage(any())).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(multipart("/admin-api/image")
+        mockMvc.perform(multipart("/image")
                         .file(file))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
@@ -80,7 +80,7 @@ class ImageControllerTest {
                 .thenThrow(new RuntimeException("FILE_REQUIRED"));
 
         // Act & Assert
-        mockMvc.perform(multipart("/admin-api/image")
+        mockMvc.perform(multipart("/image")
                         .file(file))
                 .andExpect(status().isBadRequest());
 
@@ -102,7 +102,7 @@ class ImageControllerTest {
                 .thenThrow(new RuntimeException("FILE_TOO_LARGE"));
 
         // Act & Assert
-        mockMvc.perform(multipart("/admin-api/image")
+        mockMvc.perform(multipart("/image")
                         .file(file))
                 .andExpect(status().isBadRequest());
 
@@ -123,14 +123,14 @@ class ImageControllerTest {
                 .thenThrow(new RuntimeException("INVALID_FILE_FORMAT"));
 
         // Act & Assert
-        mockMvc.perform(multipart("/admin-api/image")
+        mockMvc.perform(multipart("/image")
                         .file(file))
                 .andExpect(status().isBadRequest());
 
         verify(imageService, times(1)).uploadImage(any());
     }
 
-    // ========== GET /admin-api/image - получение изображения ==========
+    // ========== GET /image - получение изображения ==========
 
     @Test
     void testGetImage_Original() throws Exception {
@@ -142,7 +142,7 @@ class ImageControllerTest {
         when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/image")
+        mockMvc.perform(get("/image")
                         .param("id", "1")
                         .param("isPreview", "false"))
                 .andExpect(status().isOk())
@@ -163,7 +163,7 @@ class ImageControllerTest {
         when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/image")
+        mockMvc.perform(get("/image")
                         .param("id", "1")
                         .param("isPreview", "true"))
                 .andExpect(status().isOk())
@@ -184,7 +184,7 @@ class ImageControllerTest {
         when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/image")
+        mockMvc.perform(get("/image")
                         .param("id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_PNG))
@@ -201,7 +201,7 @@ class ImageControllerTest {
                 .thenThrow(new RuntimeException("IMAGE_NOT_FOUND"));
 
         // Act & Assert
-        mockMvc.perform(get("/admin-api/image")
+        mockMvc.perform(get("/image")
                         .param("id", "999"))
                 .andExpect(status().isNotFound());
 
@@ -211,13 +211,13 @@ class ImageControllerTest {
     @Test
     void testGetImage_WithoutId() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/admin-api/image"))
+        mockMvc.perform(get("/image"))
                 .andExpect(status().isBadRequest());
 
         verify(imageService, never()).getImage(anyLong(), anyBoolean());
     }
 
-    // ========== DELETE /admin-api/image/:id - удаление изображения ==========
+    // ========== DELETE /image/:id - удаление изображения ==========
 
     @Test
     void testDeleteImage_Success() throws Exception {
@@ -225,7 +225,7 @@ class ImageControllerTest {
         doNothing().when(imageService).deleteImage(1L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/image/1"))
+        mockMvc.perform(delete("/image/1"))
                 .andExpect(status().isNoContent());
 
         verify(imageService, times(1)).deleteImage(1L);
@@ -238,7 +238,7 @@ class ImageControllerTest {
                 .when(imageService).deleteImage(999L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/image/999"))
+        mockMvc.perform(delete("/image/999"))
                 .andExpect(status().isNotFound());
 
         verify(imageService, times(1)).deleteImage(999L);
@@ -251,7 +251,7 @@ class ImageControllerTest {
                 .when(imageService).deleteImage(1L);
 
         // Act & Assert
-        mockMvc.perform(delete("/admin-api/image/1"))
+        mockMvc.perform(delete("/image/1"))
                 .andExpect(status().isBadRequest());
 
         verify(imageService, times(1)).deleteImage(1L);

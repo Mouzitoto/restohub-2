@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/admin-api/r/{id}/analytics")
+@RequestMapping("/r/{id}/analytics")
 public class AnalyticsController {
     
     private final AnalyticsService analyticsService;

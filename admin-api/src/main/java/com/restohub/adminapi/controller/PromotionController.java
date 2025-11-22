@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/r/{id}/promotion")
+@RequestMapping("/r/{id}/promotion")
 public class PromotionController {
     
     private final PromotionService promotionService;
