@@ -78,7 +78,19 @@ public class RestaurantService {
         restaurant.setLatitude(request.getLatitude());
         restaurant.setLongitude(request.getLongitude());
         restaurant.setWorkingHours(request.getWorkingHours());
-        restaurant.setManagerLanguageCode(request.getManagerLanguageCode() != null ? request.getManagerLanguageCode() : "ru");
+        
+        // Устанавливаем код языка менеджера (по умолчанию "ru")
+        String managerLanguageCode = request.getManagerLanguageCode();
+        if (managerLanguageCode == null || managerLanguageCode.trim().isEmpty()) {
+            managerLanguageCode = "ru";
+        } else {
+            // Валидация формата: только если поле не пустое
+            if (!managerLanguageCode.matches("^[a-z]{2}$")) {
+                throw new RuntimeException("INVALID_MANAGER_LANGUAGE_CODE");
+            }
+        }
+        restaurant.setManagerLanguageCode(managerLanguageCode);
+        
         restaurant.setLogoImage(logoImage);
         restaurant.setBgImage(bgImage);
         restaurant.setIsActive(true);

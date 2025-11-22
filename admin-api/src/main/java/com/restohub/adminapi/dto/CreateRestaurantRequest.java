@@ -47,7 +47,6 @@ public class CreateRestaurantRequest {
     private String workingHours;
     
     @Size(max = 10, message = "Код языка не должен превышать 10 символов")
-    @Pattern(regexp = "^[a-z]{2}$", message = "Код языка должен состоять из 2 букв в нижнем регистре")
     private String managerLanguageCode;
     
     @ValidImageId

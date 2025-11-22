@@ -38,9 +38,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(BEARER_PREFIX.length());
             
             try {
+                // Проверяем, истек ли токен
+                if (jwtTokenProvider.isTokenExpired(token)) {
+                    logger.debug("Token expired for request: {}", request.getRequestURI());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    String errorJson = "{\"exceptionName\":\"TOKEN_EXPIRED\",\"message\":\"Токен истек\",\"timestamp\":\"" + 
+                            java.time.Instant.now().toString() + "\",\"traceId\":\"" + 
+                            org.slf4j.MDC.get("traceId") + "\"}";
+                    response.getWriter().write(errorJson);
+                    return;
+                }
+                
                 if (jwtTokenProvider.validateToken(token)) {
                     String email = jwtTokenProvider.getEmailFromToken(token);
                     String role = jwtTokenProvider.getRoleFromToken(token);
+                    
+                    if (role == null || role.isEmpty()) {
+                        logger.warn("Role is null or empty for user: {}", email);
+                        SecurityContextHolder.clearContext();
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             email,
@@ -49,7 +69,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.debug("Authenticated user: {} with role: {}", email, role);
                 }
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                logger.debug("Token expired: {}", e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                String errorJson = "{\"exceptionName\":\"TOKEN_EXPIRED\",\"message\":\"Токен истек\",\"timestamp\":\"" + 
+                        java.time.Instant.now().toString() + "\",\"traceId\":\"" + 
+                        org.slf4j.MDC.get("traceId") + "\"}";
+                response.getWriter().write(errorJson);
+                return;
             } catch (Exception e) {
                 logger.error("JWT authentication failed", e);
                 SecurityContextHolder.clearContext();

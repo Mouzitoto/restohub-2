@@ -11,7 +11,18 @@ import type { Restaurant, PaginationResponse } from '../../types'
 
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Название обязательно').max(255),
-  address: z.string().max(500).optional(),
+  address: z.string().min(1, 'Адрес обязателен').max(500),
+  phone: z.string().min(1, 'Телефон обязателен').max(50),
+  whatsapp: z.string().max(50).optional().or(z.literal('')),
+  instagram: z.string().max(255).optional().or(z.literal('')),
+  description: z.string().max(10000).optional().or(z.literal('')),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  workingHours: z.string().max(1000).optional().or(z.literal('')),
+  managerLanguageCode: z.string().max(10).optional().refine(
+    (val) => !val || val === '' || /^[a-z]{2}$/.test(val),
+    { message: 'Код языка должен состоять из 2 букв в нижнем регистре' }
+  ),
 })
 
 type RestaurantFormData = z.infer<typeof restaurantSchema>
@@ -148,6 +159,12 @@ export default function AdminRestaurantsPage() {
                       reset({
                         name: restaurant.name,
                         address: restaurant.address || '',
+                        phone: restaurant.phone || '',
+                        whatsapp: restaurant.whatsapp || '',
+                        instagram: restaurant.instagram || '',
+                        description: restaurant.description || '',
+                        workingHours: restaurant.workingHours || '',
+                        managerLanguageCode: restaurant.managerLanguageCode || '',
                       })
                       setIsModalOpen(true)
                     }}
@@ -185,8 +202,45 @@ export default function AdminRestaurantsPage() {
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label>Адрес</label>
+            <label>Адрес *</label>
             <input {...register('address')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.address && <div style={{ color: 'red' }}>{errors.address.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Телефон *</label>
+            <input {...register('phone')} placeholder="+79991234567" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.phone && <div style={{ color: 'red' }}>{errors.phone.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>WhatsApp</label>
+            <input {...register('whatsapp')} placeholder="+79991234567" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.whatsapp && <div style={{ color: 'red' }}>{errors.whatsapp.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Instagram</label>
+            <input {...register('instagram')} placeholder="restaurant_name" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.instagram && <div style={{ color: 'red' }}>{errors.instagram.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Описание</label>
+            <textarea {...register('description')} rows={4} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', resize: 'vertical' }} />
+            {errors.description && <div style={{ color: 'red' }}>{errors.description.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Рабочие часы</label>
+            <input {...register('workingHours')} placeholder="Пн-Пт: 10:00-22:00" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.workingHours && <div style={{ color: 'red' }}>{errors.workingHours.message}</div>}
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Код языка менеджера</label>
+            <input {...register('managerLanguageCode')} placeholder="ru" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            {errors.managerLanguageCode && <div style={{ color: 'red' }}>{errors.managerLanguageCode.message}</div>}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>

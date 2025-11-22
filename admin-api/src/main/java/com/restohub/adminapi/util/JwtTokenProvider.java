@@ -83,9 +83,13 @@ public class JwtTokenProvider {
         }
     }
     
-    private Boolean isTokenExpired(String token) {
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
+    public Boolean isTokenExpired(String token) {
+        try {
+            final Date expiration = getExpirationDateFromToken(token);
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            return true; // Если не можем получить дату истечения, считаем токен истекшим
+        }
     }
     
     public long getRefreshTokenExpiration() {

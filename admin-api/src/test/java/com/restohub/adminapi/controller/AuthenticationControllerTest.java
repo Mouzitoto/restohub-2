@@ -94,10 +94,13 @@ class AuthenticationControllerTest {
 
         // Act & Assert
         // В standalone режиме исключение обрабатывается TestExceptionHandler
+        // INVALID_CREDENTIALS должен возвращать 401 (UNAUTHORIZED)
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest()); // TestExceptionHandler возвращает 400 для RuntimeException
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.exceptionName").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("$.message").value("Неверный email или пароль"));
 
         verify(authenticationService, times(1)).login("test@example.com", "wrong-password");
     }
@@ -144,6 +147,46 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.expiresIn").value(300));
 
         verify(authenticationService, times(1)).refresh("refresh-token-123");
+    }
+
+    @Test
+    void testRefresh_ExpiredRefreshToken_Returns401() throws Exception {
+        // Arrange
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("expired-refresh-token");
+
+        when(authenticationService.refresh(anyString()))
+                .thenThrow(new RuntimeException("REFRESH_TOKEN_EXPIRED"));
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.exceptionName").value("REFRESH_TOKEN_EXPIRED"))
+                .andExpect(jsonPath("$.message").value("Refresh token истек"));
+
+        verify(authenticationService, times(1)).refresh("expired-refresh-token");
+    }
+
+    @Test
+    void testRefresh_InvalidRefreshToken_Returns401() throws Exception {
+        // Arrange
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("invalid-refresh-token");
+
+        when(authenticationService.refresh(anyString()))
+                .thenThrow(new RuntimeException("INVALID_REFRESH_TOKEN"));
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.exceptionName").value("INVALID_REFRESH_TOKEN"))
+                .andExpect(jsonPath("$.message").value("Невалидный refresh token"));
+
+        verify(authenticationService, times(1)).refresh("invalid-refresh-token");
     }
 
     // ========== POST /auth/forgot-password ==========

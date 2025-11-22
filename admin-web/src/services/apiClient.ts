@@ -30,12 +30,19 @@ class ApiClient {
       (config) => {
         const token = tokenStorage.getAccessToken()
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-
-        // Проверяем, нужно ли обновить токен
-        if (tokenStorage.isTokenExpiringSoon(5)) {
-          this.refreshTokenIfNeeded()
+          // Устанавливаем заголовок Authorization
+          // Используем оба способа для совместимости с разными версиями axios
+          if (config.headers) {
+            if (typeof config.headers.set === 'function') {
+              // AxiosHeaders (axios >= 1.0)
+              config.headers.set('Authorization', `Bearer ${token}`)
+            } else {
+              // Обычный объект (старые версии)
+              config.headers['Authorization'] = `Bearer ${token}`
+            }
+          } else {
+            config.headers = { Authorization: `Bearer ${token}` } as any
+          }
         }
 
         return config
@@ -111,17 +118,6 @@ class ApiClient {
         return Promise.reject(error)
       }
     )
-  }
-
-  private async refreshTokenIfNeeded(): Promise<void> {
-    if (this.isRefreshing) return
-
-    const refreshToken = tokenStorage.getRefreshToken()
-    if (!refreshToken) return
-
-    if (tokenStorage.isTokenExpiringSoon(5)) {
-      await this.refreshToken()
-    }
   }
 
   private async refreshToken(): Promise<boolean> {
