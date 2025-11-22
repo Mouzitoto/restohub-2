@@ -87,4 +87,5 @@ jwt:
 
 cors:
   allowed-origin: ${ADMIN_WEB_URL:http://localhost:3001}
+  client-web-url: ${CLIENT_WEB_URL:http://localhost:3000}
 

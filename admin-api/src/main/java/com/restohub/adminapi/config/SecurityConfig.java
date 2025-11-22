@@ -20,7 +20,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -31,6 +30,9 @@ public class SecurityConfig {
     
     @Value("${cors.allowed-origin:http://localhost:3001}")
     private String allowedOrigin;
+    
+    @Value("${cors.client-web-url:http://localhost:3000}")
+    private String clientWebUrl;
     
     @Autowired
     private TraceIdConfig traceIdConfig;
@@ -47,6 +49,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/auth/logout", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password").permitAll()
+                        .requestMatchers("/auth/register", "/auth/verify-email", "/auth/resend-verification-code", "/auth/terms").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -74,7 +77,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigin));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigin, clientWebUrl));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

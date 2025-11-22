@@ -2,6 +2,7 @@ package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.AuthenticationService;
+import com.restohub.adminapi.service.PartnerRegistrationService;
 import com.restohub.adminapi.service.PasswordResetService;
 import com.restohub.adminapi.util.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,14 +18,17 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final PasswordResetService passwordResetService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PartnerRegistrationService partnerRegistrationService;
     
     public AuthenticationController(
             AuthenticationService authenticationService,
             PasswordResetService passwordResetService,
-            JwtTokenProvider jwtTokenProvider) {
+            JwtTokenProvider jwtTokenProvider,
+            PartnerRegistrationService partnerRegistrationService) {
         this.authenticationService = authenticationService;
         this.passwordResetService = passwordResetService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.partnerRegistrationService = partnerRegistrationService;
     }
     
     @PostMapping("/login")
@@ -88,6 +92,30 @@ public class AuthenticationController {
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody AuthResetPasswordRequest request) {
         passwordResetService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok(new MessageResponse("Пароль успешно изменен"));
+    }
+    
+    @PostMapping("/register")
+    public ResponseEntity<RegisterPartnerResponse> register(@Valid @RequestBody RegisterPartnerRequest request) {
+        RegisterPartnerResponse response = partnerRegistrationService.registerPartner(request);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/verify-email")
+    public ResponseEntity<VerifyEmailResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        VerifyEmailResponse response = partnerRegistrationService.verifyEmail(request);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/resend-verification-code")
+    public ResponseEntity<MessageResponse> resendVerificationCode(@Valid @RequestBody ResendVerificationCodeRequest request) {
+        MessageResponse response = partnerRegistrationService.resendVerificationCode(request);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/terms")
+    public ResponseEntity<TermsResponse> getTerms() {
+        TermsResponse response = partnerRegistrationService.getTerms();
+        return ResponseEntity.ok(response);
     }
 }
 

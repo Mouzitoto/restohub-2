@@ -8,6 +8,7 @@
     <include file="changesets/V1__initial_schema.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V2__auth_tables.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V3__insert_default_roles.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V4__email_verification.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
 
