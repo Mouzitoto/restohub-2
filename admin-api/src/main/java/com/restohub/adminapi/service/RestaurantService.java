@@ -3,9 +3,12 @@ package com.restohub.adminapi.service;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.entity.Image;
 import com.restohub.adminapi.entity.Restaurant;
+import com.restohub.adminapi.entity.User;
+import com.restohub.adminapi.entity.UserRestaurant;
 import com.restohub.adminapi.repository.ImageRepository;
 import com.restohub.adminapi.repository.RestaurantRepository;
 import com.restohub.adminapi.repository.RestaurantSubscriptionRepository;
+import com.restohub.adminapi.repository.UserRepository;
 import com.restohub.adminapi.repository.UserRestaurantRepository;
 import com.restohub.adminapi.validation.InstagramValidator;
 import com.restohub.adminapi.validation.PhoneValidator;
@@ -35,17 +38,20 @@ public class RestaurantService {
     private final ImageRepository imageRepository;
     private final UserRestaurantRepository userRestaurantRepository;
     private final RestaurantSubscriptionRepository restaurantSubscriptionRepository;
+    private final UserRepository userRepository;
     
     @Autowired
     public RestaurantService(
             RestaurantRepository restaurantRepository,
             ImageRepository imageRepository,
             UserRestaurantRepository userRestaurantRepository,
-            RestaurantSubscriptionRepository restaurantSubscriptionRepository) {
+            RestaurantSubscriptionRepository restaurantSubscriptionRepository,
+            UserRepository userRepository) {
         this.restaurantRepository = restaurantRepository;
         this.imageRepository = imageRepository;
         this.userRestaurantRepository = userRestaurantRepository;
         this.restaurantSubscriptionRepository = restaurantSubscriptionRepository;
+        this.userRepository = userRepository;
     }
     
     @Transactional
@@ -97,7 +103,52 @@ public class RestaurantService {
         
         restaurant = restaurantRepository.save(restaurant);
         
+        // Привязка ресторана к пользователю
+        linkRestaurantToUser(restaurant, request.getUserId());
+        
         return toResponse(restaurant);
+    }
+    
+    private void linkRestaurantToUser(Restaurant restaurant, Long userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return;
+        }
+        
+        // Получаем роль пользователя
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        
+        User userToLink;
+        
+        if (isAdmin) {
+            // ADMIN может указать userId для привязки ресторана к менеджеру
+            if (userId != null) {
+                userToLink = userRepository.findByIdAndIsActiveTrue(userId)
+                        .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+            } else {
+                // Если userId не указан, не привязываем (как было раньше)
+                return;
+            }
+        } else {
+            // MANAGER автоматически привязывает ресторан к себе
+            // Игнорируем userId, если он указан
+            String email = authentication.getName();
+            userToLink = userRepository.findByEmailAndIsActiveTrue(email)
+                    .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+        }
+        
+        // Проверяем, не существует ли уже такая связь
+        boolean linkExists = userRestaurantRepository.findByRestaurantId(restaurant.getId()).stream()
+                .anyMatch(ur -> ur.getUser().getId().equals(userToLink.getId()));
+        
+        if (!linkExists) {
+            UserRestaurant userRestaurant = new UserRestaurant();
+            userRestaurant.setUser(userToLink);
+            userRestaurant.setRestaurant(restaurant);
+            userRestaurant.setCreatedAt(LocalDateTime.now());
+            userRestaurantRepository.save(userRestaurant);
+        }
     }
     
     public PaginationResponse<List<RestaurantListItemResponse>> getRestaurants(

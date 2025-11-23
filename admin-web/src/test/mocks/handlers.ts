@@ -48,7 +48,12 @@ export const handlers = [
           address: 'Test Address',
         },
       ],
-      total: 1,
+      pagination: {
+        total: 1,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
+      },
     })
   }),
 
@@ -60,6 +65,17 @@ export const handlers = [
       phone: '+79991234567',
       isActive: true,
     })
+  }),
+
+  http.post('/admin-api/r', async ({ request }) => {
+    const body = await request.json() as any
+    return HttpResponse.json({
+      id: 1,
+      name: body.name,
+      address: body.address,
+      phone: body.phone,
+      isActive: true,
+    }, { status: 201 })
   }),
 
   // Menu category handlers

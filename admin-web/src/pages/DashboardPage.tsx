@@ -29,7 +29,7 @@ export default function DashboardPage() {
       setIsLoading(true)
       try {
         const [overviewRes, bookingsRes] = await Promise.all([
-          apiClient.instance.get<AnalyticsOverview>(
+          apiClient.instance.get<any>(
             `/admin-api/r/${currentRestaurant.id}/analytics/overview`
           ),
           apiClient.instance.get<any>(
@@ -37,8 +37,26 @@ export default function DashboardPage() {
           ),
         ])
 
-        setOverview(overviewRes.data)
-        setBookingsData(bookingsRes.data?.data || [])
+        // Преобразуем структуру ответа API в формат, ожидаемый компонентом
+        const overviewData = overviewRes.data
+        const bookingsResponse = bookingsRes.data
+        
+        // Преобразуем overview в нужный формат
+        setOverview({
+          bookings: overviewData?.bookings?.total || 0,
+          preOrders: overviewData?.preOrders?.total || 0,
+          revenue: overviewData?.preOrders?.totalRevenue ? Number(overviewData.preOrders.totalRevenue) : 0,
+          newClients: overviewData?.clients?.newClients || 0,
+        })
+        
+        // Преобразуем chart данные для графика
+        const chartData = bookingsResponse?.chart || []
+        setBookingsData(chartData.map((item: any) => ({
+          date: item.period,
+          approved: item.byStatus?.APPROVED || 0,
+          pending: item.byStatus?.PENDING || 0,
+          rejected: item.byStatus?.REJECTED || 0,
+        })))
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       } finally {

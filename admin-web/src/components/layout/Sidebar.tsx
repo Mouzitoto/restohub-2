@@ -58,7 +58,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {role === 'ADMIN' && (
+        {(role === 'ADMIN' || role === 'MANAGER') && (
           <>
             <div
               style={{
@@ -69,9 +69,10 @@ export default function Sidebar() {
                 textTransform: 'uppercase',
               }}
             >
-              Администрирование
+              {role === 'ADMIN' ? 'Администрирование' : 'Управление'}
             </div>
-            {adminMenuItems.map((item) => (
+            {/* Менеджеры видят только "Управление ресторанами" */}
+            {(role === 'ADMIN' ? adminMenuItems : adminMenuItems.filter(item => item.path === '/admin/restaurants')).map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -85,7 +86,7 @@ export default function Sidebar() {
                 })}
               >
                 <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>
-                {item.label}
+                {role === 'MANAGER' && item.path === '/admin/restaurants' ? 'Мои рестораны' : item.label}
               </NavLink>
             ))}
           </>

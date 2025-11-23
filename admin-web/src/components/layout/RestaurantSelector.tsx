@@ -5,14 +5,13 @@ export default function RestaurantSelector() {
   const { restaurants, currentRestaurant, setCurrentRestaurant } = useApp()
   const [isOpen, setIsOpen] = useState(false)
 
-  // Показываем только если ресторанов больше одного
-  if (!restaurants || restaurants.length <= 1) {
-    return currentRestaurant ? (
-      <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-        {currentRestaurant.name}
-      </div>
-    ) : null
+  // Если ресторанов нет, не показываем селектор
+  if (!restaurants || restaurants.length === 0) {
+    return null
   }
+
+  // Если ресторан один, показываем его название, но все равно как дропдаун (на случай если ресторанов станет больше)
+  const hasMultipleRestaurants = restaurants.length > 1
 
   return (
     <div style={{ position: 'relative' }}>
@@ -23,17 +22,21 @@ export default function RestaurantSelector() {
           backgroundColor: '#f5f5f5',
           border: '1px solid #ddd',
           borderRadius: '4px',
-          cursor: 'pointer',
+          cursor: hasMultipleRestaurants ? 'pointer' : 'default',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
+          minWidth: '200px',
         }}
+        disabled={!hasMultipleRestaurants}
       >
-        {currentRestaurant?.name || 'Выберите ресторан'}
-        <span>▼</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>
+          {currentRestaurant?.name || 'Выберите ресторан'}
+        </span>
+        {hasMultipleRestaurants && <span>▼</span>}
       </button>
 
-      {isOpen && (
+      {isOpen && hasMultipleRestaurants && (
         <>
           <div
             style={{
@@ -58,6 +61,8 @@ export default function RestaurantSelector() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               zIndex: 999,
               minWidth: '200px',
+              maxHeight: '300px',
+              overflowY: 'auto',
             }}
           >
             {restaurants.map((restaurant) => (
@@ -66,8 +71,7 @@ export default function RestaurantSelector() {
                 onClick={() => {
                   setCurrentRestaurant(restaurant)
                   setIsOpen(false)
-                  // Перезагружаем страницу для обновления данных
-                  window.location.reload()
+                  // Данные обновятся автоматически через useEffect в страницах, которые зависят от currentRestaurant
                 }}
                 style={{
                   display: 'block',
@@ -78,6 +82,17 @@ export default function RestaurantSelector() {
                   backgroundColor:
                     currentRestaurant?.id === restaurant.id ? '#e3f2fd' : 'white',
                   cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentRestaurant?.id !== restaurant.id) {
+                    e.currentTarget.style.backgroundColor = '#f5f5f5'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentRestaurant?.id !== restaurant.id) {
+                    e.currentTarget.style.backgroundColor = 'white'
+                  }
                 }}
               >
                 {restaurant.name}

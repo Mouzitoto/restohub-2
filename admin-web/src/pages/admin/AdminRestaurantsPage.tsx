@@ -28,7 +28,7 @@ const restaurantSchema = z.object({
 type RestaurantFormData = z.infer<typeof restaurantSchema>
 
 export default function AdminRestaurantsPage() {
-  const { role } = useApp()
+  const { role, setCurrentRestaurant, refreshRestaurants } = useApp()
   const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -46,7 +46,8 @@ export default function AdminRestaurantsPage() {
   })
 
   useEffect(() => {
-    if (role !== 'ADMIN') {
+    // ADMIN и MANAGER могут видеть и создавать рестораны
+    if (role !== 'ADMIN' && role !== 'MANAGER') {
       navigate('/dashboard')
       return
     }
@@ -71,8 +72,22 @@ export default function AdminRestaurantsPage() {
         await apiClient.instance.put(`/admin-api/r/${editingRestaurant.id}`, data)
         toast.success('Ресторан обновлен')
       } else {
-        await apiClient.instance.post('/admin-api/r', data)
+        const response = await apiClient.instance.post<Restaurant>('/admin-api/r', data)
         toast.success('Ресторан создан')
+        
+        // Если это менеджер и создан новый ресторан, обновляем список ресторанов и выбираем новый
+        if (role === 'MANAGER') {
+          // Обновляем список ресторанов в контексте
+          await refreshRestaurants()
+          // Находим новый ресторан в обновленном списке и выбираем его
+          if (response.data) {
+            const updatedRestaurants = await apiClient.instance.get<PaginationResponse<Restaurant[]>>('/admin-api/r')
+            const newRestaurant = updatedRestaurants.data.data.find(r => r.id === response.data.id)
+            if (newRestaurant) {
+              setCurrentRestaurant(newRestaurant)
+            }
+          }
+        }
       }
       setIsModalOpen(false)
       reset()
@@ -97,7 +112,8 @@ export default function AdminRestaurantsPage() {
     }
   }
 
-  if (role !== 'ADMIN') {
+  // ADMIN и MANAGER могут видеть и создавать рестораны
+  if (role !== 'ADMIN' && role !== 'MANAGER') {
     return null
   }
 

@@ -54,5 +54,7 @@ public class CreateRestaurantRequest {
     
     @ValidImageId
     private Long bgImageId;
+    
+    private Long userId;
 }
 

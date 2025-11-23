@@ -36,8 +36,23 @@ export default function AnalyticsPage() {
         apiClient.instance.get(`/admin-api/r/${currentRestaurant.id}/analytics/pre-order`),
       ])
 
-      setBookingsData(bookingsRes.data?.data || [])
-      setPreOrdersData(preOrdersRes.data?.data || [])
+      // Преобразуем данные для графика бронирований
+      const bookingsResponse = bookingsRes.data
+      const chartData = bookingsResponse?.chart || []
+      setBookingsData(chartData.map((item: any) => ({
+        date: item.period,
+        approved: item.byStatus?.APPROVED || 0,
+        pending: item.byStatus?.PENDING || 0,
+        rejected: item.byStatus?.REJECTED || 0,
+      })))
+
+      // Преобразуем данные для графика предзаказов
+      const preOrdersResponse = preOrdersRes.data
+      const preOrdersChartData = preOrdersResponse?.chart || []
+      setPreOrdersData(preOrdersChartData.map((item: any) => ({
+        name: item.period,
+        count: item.count || 0,
+      })))
     } catch (error) {
       console.error('Failed to load analytics:', error)
     } finally {
