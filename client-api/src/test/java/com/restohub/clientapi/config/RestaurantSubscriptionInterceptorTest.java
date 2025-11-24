@@ -39,7 +39,8 @@ class RestaurantSubscriptionInterceptorTest {
     void setUp() throws Exception {
         stringWriter = new StringWriter();
         printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
+        // Используем lenient() чтобы избежать UnnecessaryStubbingException для тестов, которые не используют getWriter()
+        lenient().when(response.getWriter()).thenReturn(printWriter);
     }
     
     @Test

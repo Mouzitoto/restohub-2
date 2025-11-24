@@ -26,7 +26,7 @@ export default function BookingsPage() {
       const response = await apiClient.instance.get<{ data: Booking[]; total: number }>(
         `/admin-api/r/${currentRestaurant.id}/booking`
       )
-      setBookings(response.data.data)
+      setBookings(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить бронирования')
     }
@@ -36,12 +36,20 @@ export default function BookingsPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<PreOrderItem[]>(
+      const response = await apiClient.instance.get<PreOrderItem[] | { data: PreOrderItem[] }>(
         `/admin-api/r/${currentRestaurant.id}/booking/${bookingId}/pre-order-items`
       )
-      setPreOrderItems(response.data)
+      // Проверяем, является ли ответ массивом или объектом с data
+      if (Array.isArray(response.data)) {
+        setPreOrderItems(response.data)
+      } else if (response.data && 'data' in response.data && Array.isArray(response.data.data)) {
+        setPreOrderItems(response.data.data)
+      } else {
+        setPreOrderItems([])
+      }
     } catch (error) {
       toast.error('Не удалось загрузить предзаказ')
+      setPreOrderItems([])
     }
   }
 

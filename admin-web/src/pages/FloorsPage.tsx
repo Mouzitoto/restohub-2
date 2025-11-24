@@ -41,12 +41,13 @@ export default function FloorsPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Floor[]>(
+      const response = await apiClient.instance.get<{ data: Floor[] }>(
         `/admin-api/r/${currentRestaurant.id}/floor?sortBy=floorNumber&sortOrder=asc`
       )
-      setFloors(response.data)
+      setFloors(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить этажи')
+      setFloors([])
     }
   }
 

@@ -50,13 +50,17 @@ export default function DashboardPage() {
         })
         
         // Преобразуем chart данные для графика
-        const chartData = bookingsResponse?.chart || []
-        setBookingsData(chartData.map((item: any) => ({
-          date: item.period,
-          approved: item.byStatus?.APPROVED || 0,
-          pending: item.byStatus?.PENDING || 0,
-          rejected: item.byStatus?.REJECTED || 0,
-        })))
+        const chartData = bookingsResponse?.chart
+        if (Array.isArray(chartData)) {
+          setBookingsData(chartData.map((item: any) => ({
+            date: item.period,
+            approved: item.byStatus?.APPROVED || 0,
+            pending: item.byStatus?.PENDING || 0,
+            rejected: item.byStatus?.REJECTED || 0,
+          })))
+        } else {
+          setBookingsData([])
+        }
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       } finally {

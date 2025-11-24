@@ -58,12 +58,13 @@ export default function PromotionsPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Promotion[]>(
+      const response = await apiClient.instance.get<{ data: Promotion[] }>(
         `/admin-api/r/${currentRestaurant.id}/promotion`
       )
-      setPromotions(response.data)
+      setPromotions(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить акции')
+      setPromotions([])
     }
   }
 

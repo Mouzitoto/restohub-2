@@ -51,12 +51,13 @@ export default function TablesPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Room[]>(
+      const response = await apiClient.instance.get<{ data: Room[] }>(
         `/admin-api/r/${currentRestaurant.id}/room`
       )
-      setRooms(response.data)
+      setRooms(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить залы')
+      setRooms([])
     }
   }
 
@@ -64,12 +65,13 @@ export default function TablesPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Table[]>(
+      const response = await apiClient.instance.get<{ data: Table[] }>(
         `/admin-api/r/${currentRestaurant.id}/table`
       )
-      setTables(response.data)
+      setTables(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить столы')
+      setTables([])
     }
   }
 

@@ -28,6 +28,7 @@ services:
       DB_USER: restohub
       DB_PASSWORD: restohub
       SERVER_PORT: 8082
+      ADMIN_WEB_URL: ${ADMIN_WEB_URL:-http://partner.restohub.local}
     ports:
       - "8082:8082"
     depends_on:
@@ -52,6 +53,7 @@ services:
       DB_USER: restohub
       DB_PASSWORD: restohub
       SERVER_PORT: 8081
+      CLIENT_WEB_URL: ${CLIENT_WEB_URL:-http://restohub.local}
     ports:
       - "8081:8081"
     depends_on:
@@ -72,6 +74,9 @@ services:
     build:
       context: ./client-web
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
+        VITE_PARTNER_DOMAIN: ${VITE_PARTNER_DOMAIN:-http://partner.restohub.local}
     container_name: resto-hub-client-web
     ports:
       - "3000:80"
@@ -84,6 +89,8 @@ services:
     build:
       context: ./admin-web
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
     container_name: resto-hub-admin-web
     ports:
       - "3001:80"
@@ -91,6 +98,28 @@ services:
       - admin-api
     networks:
       - resto-hub-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: resto-hub-nginx
+    ports:
+      - "80:80"
+    environment:
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN:-restohub.local}
+      PARTNER_DOMAIN: ${PARTNER_DOMAIN:-partner.restohub.local}
+      API_DOMAIN: ${API_DOMAIN:-api.restohub.local}
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      - client-web
+      - admin-web
+      - client-api
+      - admin-api
+    networks:
+      - resto-hub-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

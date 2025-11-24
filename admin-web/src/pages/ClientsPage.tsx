@@ -37,16 +37,16 @@ export default function ClientsPage() {
     setIsLoading(true)
     try {
       const [bookingsRes, preOrdersRes] = await Promise.all([
-        apiClient.instance.get<Booking[]>(
+        apiClient.instance.get<{ data: Booking[] }>(
           `/admin-api/r/${currentRestaurant.id}/client/${clientId}/booking`
         ),
-        apiClient.instance.get<PreOrderItem[]>(
+        apiClient.instance.get<{ data: PreOrderItem[] }>(
           `/admin-api/r/${currentRestaurant.id}/client/${clientId}/pre-order`
         ),
       ])
 
-      setClientBookings(bookingsRes.data)
-      setClientPreOrders(preOrdersRes.data)
+      setClientBookings(Array.isArray(bookingsRes.data?.data) ? bookingsRes.data.data : [])
+      setClientPreOrders(Array.isArray(preOrdersRes.data?.data) ? preOrdersRes.data.data : [])
     } catch (error) {
       console.error('Failed to load client details:', error)
     } finally {

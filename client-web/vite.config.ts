@@ -9,18 +9,5 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
-  server: {
-    port: 3000,
-    proxy: {
-      '/admin-api': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-      },
-      '/client-api': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-      },
-    },
-  },
 })
 

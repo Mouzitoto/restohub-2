@@ -38,21 +38,38 @@ export default function AnalyticsPage() {
 
       // Преобразуем данные для графика бронирований
       const bookingsResponse = bookingsRes.data
-      const chartData = bookingsResponse?.chart || []
-      setBookingsData(chartData.map((item: any) => ({
-        date: item.period,
-        approved: item.byStatus?.APPROVED || 0,
-        pending: item.byStatus?.PENDING || 0,
-        rejected: item.byStatus?.REJECTED || 0,
-      })))
+      const chartData = bookingsResponse?.chart
+      if (Array.isArray(chartData)) {
+        setBookingsData(chartData.map((item: any) => ({
+          date: item.period,
+          approved: item.byStatus?.APPROVED || 0,
+          pending: item.byStatus?.PENDING || 0,
+          rejected: item.byStatus?.REJECTED || 0,
+        })))
+      } else {
+        setBookingsData([])
+      }
 
       // Преобразуем данные для графика предзаказов
       const preOrdersResponse = preOrdersRes.data
-      const preOrdersChartData = preOrdersResponse?.chart || []
-      setPreOrdersData(preOrdersChartData.map((item: any) => ({
-        name: item.period,
-        count: item.count || 0,
-      })))
+      const preOrdersChartData = preOrdersResponse?.chart
+      if (Array.isArray(preOrdersChartData)) {
+        setPreOrdersData(preOrdersChartData.map((item: any) => ({
+          name: item.period,
+          count: item.count || 0,
+        })))
+      } else {
+        // Если chart нет, используем popularItems
+        const popularItems = preOrdersResponse?.popularItems
+        if (Array.isArray(popularItems)) {
+          setPreOrdersData(popularItems.map((item: any) => ({
+            name: item.menuItemName,
+            count: item.quantity || 0,
+          })))
+        } else {
+          setPreOrdersData([])
+        }
+      }
     } catch (error) {
       console.error('Failed to load analytics:', error)
     } finally {

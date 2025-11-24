@@ -53,12 +53,13 @@ export default function RoomsPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Floor[]>(
+      const response = await apiClient.instance.get<{ data: Floor[] }>(
         `/admin-api/r/${currentRestaurant.id}/floor`
       )
-      setFloors(response.data)
+      setFloors(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить этажи')
+      setFloors([])
     }
   }
 
@@ -66,12 +67,13 @@ export default function RoomsPage() {
     if (!currentRestaurant) return
 
     try {
-      const response = await apiClient.instance.get<Room[]>(
+      const response = await apiClient.instance.get<{ data: Room[] }>(
         `/admin-api/r/${currentRestaurant.id}/room`
       )
-      setRooms(response.data)
+      setRooms(Array.isArray(response.data?.data) ? response.data.data : [])
     } catch (error) {
       toast.error('Не удалось загрузить залы')
+      setRooms([])
     }
   }
 

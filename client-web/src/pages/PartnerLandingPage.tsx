@@ -12,7 +12,8 @@ export default function PartnerLandingPage() {
   }, [])
 
   const handleGoToLogin = () => {
-    window.location.href = 'http://localhost:3001/login'
+    const partnerDomain = import.meta.env.VITE_PARTNER_DOMAIN || 'http://partner.restohub.local'
+    window.location.href = `${partnerDomain}/login`
   }
 
   return (

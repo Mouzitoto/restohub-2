@@ -7,6 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
+# Build argument for API base URL
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Copy source code and build
 COPY . .
 RUN npm run build
