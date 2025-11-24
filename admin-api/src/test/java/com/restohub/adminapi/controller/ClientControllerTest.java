@@ -1,6 +1,5 @@
 package com.restohub.adminapi.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.ClientService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +30,6 @@ class ClientControllerTest {
     private ClientController clientController;
 
     private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +37,6 @@ class ClientControllerTest {
                 .setControllerAdvice(new TestExceptionHandler())
                 .setValidator(null)
                 .build();
-        objectMapper = new ObjectMapper();
     }
 
     // ========== GET /r/{id}/client - список клиентов ==========

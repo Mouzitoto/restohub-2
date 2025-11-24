@@ -1,6 +1,5 @@
 package com.restohub.adminapi.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.BookingService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -34,7 +32,6 @@ class BookingControllerTest {
     private BookingController bookingController;
 
     private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +39,6 @@ class BookingControllerTest {
                 .setControllerAdvice(new TestExceptionHandler())
                 .setValidator(null)
                 .build();
-        objectMapper = new ObjectMapper();
     }
 
     // ========== GET /r/{id}/booking - список бронирований ==========

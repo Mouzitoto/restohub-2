@@ -3,7 +3,6 @@ package com.restohub.adminapi.service;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.entity.Floor;
 import com.restohub.adminapi.entity.Image;
-import com.restohub.adminapi.entity.Restaurant;
 import com.restohub.adminapi.entity.Room;
 import com.restohub.adminapi.repository.FloorRepository;
 import com.restohub.adminapi.repository.ImageRepository;
@@ -58,7 +57,7 @@ public class RoomService {
     @Transactional
     public RoomResponse createRoom(Long restaurantId, CreateRoomRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка существования и принадлежности этажа к ресторану

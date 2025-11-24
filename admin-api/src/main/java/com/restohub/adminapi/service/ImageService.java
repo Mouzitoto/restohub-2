@@ -58,6 +58,7 @@ public class ImageService {
         BufferedImage originalImage = ImageIO.read(file.getInputStream());
         
         if (originalImage == null) {
+            logger.warn("Failed to read image from file: contentType={}, size={}", contentType, file.getSize());
             throw new RuntimeException("INVALID_IMAGE");
         }
         
@@ -77,6 +78,7 @@ public class ImageService {
         image.setIsActive(true);
         
         image = imageRepository.save(image);
+        logger.debug("Image uploaded successfully: id={}, size={}, type={}", image.getId(), file.getSize(), contentType);
         
         ImageResponse response = new ImageResponse();
         response.setId(image.getId());
@@ -127,6 +129,7 @@ public class ImageService {
         image.setIsActive(false);
         image.setDeletedAt(LocalDateTime.now());
         imageRepository.save(image);
+        logger.debug("Image soft deleted: id={}", id);
     }
     
     private BufferedImage generatePreview(BufferedImage original) {

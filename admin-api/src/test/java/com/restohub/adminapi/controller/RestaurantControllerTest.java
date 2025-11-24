@@ -120,7 +120,6 @@ class RestaurantControllerTest {
     @Test
     void testCreateRestaurant_ValidationError() throws Exception {
         // Arrange
-        CreateRestaurantRequest request = new CreateRestaurantRequest();
         // Не указываем обязательные поля
 
         // В standalone режиме валидация может не работать
