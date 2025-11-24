@@ -10,9 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -21,6 +24,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -296,6 +300,120 @@ class MenuItemControllerTest {
                 .andExpect(jsonPath("$.message").value("Порядок блюд успешно обновлен"));
 
         verify(menuItemService, times(1)).reorderMenuItems(eq(1L), any(ReorderMenuItemsRequest.class));
+    }
+
+    // ========== POST /r/{id}/menu-item/{itemId}/image - загрузка изображения блюда ==========
+
+    @Test
+    void testUploadMenuItemImage_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "dish.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        MenuItemResponse response = new MenuItemResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setMenuCategoryId(1L);
+        response.setName("Пицца Маргарита");
+        response.setImageId(123L);
+        response.setIsActive(true);
+
+        doReturn(response).when(menuItemService).uploadMenuItemImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/menu-item/1/image")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").value(123L));
+
+        verify(menuItemService, times(1)).uploadMenuItemImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadMenuItemImage_NotFound() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "dish.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("MENU_ITEM_NOT_FOUND"))
+                .when(menuItemService).uploadMenuItemImage(eq(1L), eq(999L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/menu-item/999/image")
+                        .file(file))
+                .andExpect(status().isNotFound());
+
+        verify(menuItemService, times(1)).uploadMenuItemImage(eq(1L), eq(999L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadMenuItemImage_IOException() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "dish.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
+        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        doThrow(new IOException("IO_ERROR"))
+                .when(menuItemService).uploadMenuItemImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/menu-item/1/image")
+                        .file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.exceptionName").value("IMAGE_UPLOAD_ERROR"));
+
+        verify(menuItemService, times(1)).uploadMenuItemImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    // ========== DELETE /r/{id}/menu-item/{itemId}/image - удаление изображения блюда ==========
+
+    @Test
+    void testDeleteMenuItemImage_Success() throws Exception {
+        // Arrange
+        MenuItemResponse response = new MenuItemResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setMenuCategoryId(1L);
+        response.setName("Пицца Маргарита");
+        response.setImageId(null);
+        response.setIsActive(true);
+
+        when(menuItemService.deleteMenuItemImage(1L, 1L)).thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/menu-item/1/image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").isEmpty());
+
+        verify(menuItemService, times(1)).deleteMenuItemImage(1L, 1L);
+    }
+
+    @Test
+    void testDeleteMenuItemImage_NotFound() throws Exception {
+        // Arrange
+        when(menuItemService.deleteMenuItemImage(1L, 999L))
+                .thenThrow(new RuntimeException("MENU_ITEM_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/menu-item/999/image"))
+                .andExpect(status().isNotFound());
+
+        verify(menuItemService, times(1)).deleteMenuItemImage(1L, 999L);
     }
 }
 

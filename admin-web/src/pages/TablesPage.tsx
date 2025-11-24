@@ -28,6 +28,7 @@ export default function TablesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTable, setEditingTable] = useState<Table | null>(null)
   const [imageId, setImageId] = useState<number | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
 
@@ -75,23 +76,92 @@ export default function TablesPage() {
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    if (!currentRestaurant || !editingTable) return
+
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiClient.instance.post<Table>(
+        `/admin-api/r/${currentRestaurant.id}/table/${editingTable.id}/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение успешно загружено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    if (!currentRestaurant || !editingTable) return
+
+    setIsLoading(true)
+    try {
+      const response = await apiClient.instance.delete<Table>(
+        `/admin-api/r/${currentRestaurant.id}/table/${editingTable.id}/image`
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение удалено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const onSubmit = async (data: TableFormData) => {
     if (!currentRestaurant) return
 
     setIsLoading(true)
     try {
-      const payload = { ...data, imageId }
+      // Создаем или обновляем сущность без изображения
+      let tableId: number
       if (editingTable) {
-        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/table/${editingTable.id}`, payload)
+        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/table/${editingTable.id}`, data)
+        tableId = editingTable.id
         toast.success('Стол обновлен')
       } else {
-        await apiClient.instance.post(`/admin-api/r/${currentRestaurant.id}/table`, payload)
+        const response = await apiClient.instance.post<Table>(
+          `/admin-api/r/${currentRestaurant.id}/table`,
+          data
+        )
+        tableId = response.data.id
         toast.success('Стол создан')
       }
+
+      // Если есть файл изображения, загружаем его
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+
+        await apiClient.instance.post(
+          `/admin-api/r/${currentRestaurant.id}/table/${tableId}/image`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+      }
+
       setIsModalOpen(false)
       reset()
       setEditingTable(null)
       setImageId(null)
+      setImageFile(null)
       loadTables()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
@@ -126,6 +196,7 @@ export default function TablesPage() {
             setEditingTable(null)
             reset()
             setImageId(null)
+            setImageFile(null)
             setIsModalOpen(true)
           }}
           style={{
@@ -168,6 +239,7 @@ export default function TablesPage() {
                     onClick={() => {
                       setEditingTable(table)
                       setImageId(table.imageId || null)
+                      setImageFile(null)
                       reset({
                         tableNumber: table.tableNumber,
                         roomId: table.roomId,
@@ -202,6 +274,7 @@ export default function TablesPage() {
           reset()
           setEditingTable(null)
           setImageId(null)
+          setImageFile(null)
         }}
         title={editingTable ? 'Редактировать стол' : 'Создать стол'}
         size="medium"
@@ -251,10 +324,14 @@ export default function TablesPage() {
             <label>Фото стола</label>
             <ImageUpload
               currentImageId={imageId}
-              onImageUploaded={setImageId}
-              onImageRemoved={() => setImageId(null)}
+              onImageUploaded={editingTable ? handleImageUpload : (file: File) => setImageFile(file)}
+              onImageRemoved={editingTable ? handleImageRemove : () => {
+                setImageId(null)
+                setImageFile(null)
+              }}
               type="table"
               recommendedSize="800x600px - 1200x900px"
+              uploadToEntity={true}
             />
           </div>
 
@@ -266,6 +343,7 @@ export default function TablesPage() {
                 reset()
                 setEditingTable(null)
                 setImageId(null)
+                setImageFile(null)
               }}
               style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
             >

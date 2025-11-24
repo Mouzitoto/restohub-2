@@ -3,13 +3,16 @@ import { render } from '@testing-library/react'
 import type { RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { AppProvider } from '../../context/AppContext'
+import { ToastProvider } from '../../context/ToastContext'
 
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <BrowserRouter>
-      <AppProvider>
-        {children}
-      </AppProvider>
+      <ToastProvider>
+        <AppProvider>
+          {children}
+        </AppProvider>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

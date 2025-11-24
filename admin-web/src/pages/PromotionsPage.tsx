@@ -29,6 +29,7 @@ export default function PromotionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
   const [imageId, setImageId] = useState<number | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
 
@@ -68,23 +69,92 @@ export default function PromotionsPage() {
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    if (!currentRestaurant || !editingPromotion) return
+
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiClient.instance.post<Promotion>(
+        `/admin-api/r/${currentRestaurant.id}/promotion/${editingPromotion.id}/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение успешно загружено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    if (!currentRestaurant || !editingPromotion) return
+
+    setIsLoading(true)
+    try {
+      const response = await apiClient.instance.delete<Promotion>(
+        `/admin-api/r/${currentRestaurant.id}/promotion/${editingPromotion.id}/image`
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение удалено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const onSubmit = async (data: PromotionFormData) => {
     if (!currentRestaurant) return
 
     setIsLoading(true)
     try {
-      const payload = { ...data, imageId }
+      // Создаем или обновляем сущность без изображения
+      let promotionId: number
       if (editingPromotion) {
-        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/promotion/${editingPromotion.id}`, payload)
+        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/promotion/${editingPromotion.id}`, data)
+        promotionId = editingPromotion.id
         toast.success('Акция обновлена')
       } else {
-        await apiClient.instance.post(`/admin-api/r/${currentRestaurant.id}/promotion`, payload)
+        const response = await apiClient.instance.post<Promotion>(
+          `/admin-api/r/${currentRestaurant.id}/promotion`,
+          data
+        )
+        promotionId = response.data.id
         toast.success('Акция создана')
       }
+
+      // Если есть файл изображения, загружаем его
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+
+        await apiClient.instance.post(
+          `/admin-api/r/${currentRestaurant.id}/promotion/${promotionId}/image`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+      }
+
       setIsModalOpen(false)
       reset()
       setEditingPromotion(null)
       setImageId(null)
+      setImageFile(null)
       loadPromotions()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
@@ -119,6 +189,7 @@ export default function PromotionsPage() {
             setEditingPromotion(null)
             reset()
             setImageId(null)
+            setImageFile(null)
             setIsModalOpen(true)
           }}
           style={{
@@ -162,6 +233,7 @@ export default function PromotionsPage() {
                     onClick={() => {
                       setEditingPromotion(promotion)
                       setImageId(promotion.imageId || null)
+                      setImageFile(null)
                       reset({
                         title: promotion.title,
                         description: promotion.description || '',
@@ -198,6 +270,7 @@ export default function PromotionsPage() {
           reset()
           setEditingPromotion(null)
           setImageId(null)
+          setImageFile(null)
         }}
         title={editingPromotion ? 'Редактировать акцию' : 'Создать акцию'}
         size="large"
@@ -263,10 +336,14 @@ export default function PromotionsPage() {
             <label>Изображение</label>
             <ImageUpload
               currentImageId={imageId}
-              onImageUploaded={setImageId}
-              onImageRemoved={() => setImageId(null)}
+              onImageUploaded={editingPromotion ? handleImageUpload : (file: File) => setImageFile(file)}
+              onImageRemoved={editingPromotion ? handleImageRemove : () => {
+                setImageId(null)
+                setImageFile(null)
+              }}
               type="promotion"
               recommendedSize="1200x600px - 1920x1080px"
+              uploadToEntity={true}
             />
           </div>
 
@@ -278,6 +355,7 @@ export default function PromotionsPage() {
                 reset()
                 setEditingPromotion(null)
                 setImageId(null)
+                setImageFile(null)
               }}
               style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
             >

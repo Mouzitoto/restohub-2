@@ -31,6 +31,7 @@ export default function MenuItemsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [imageId, setImageId] = useState<number | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
 
@@ -84,23 +85,92 @@ export default function MenuItemsPage() {
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    if (!currentRestaurant || !editingItem) return
+
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiClient.instance.post<MenuItem>(
+        `/admin-api/r/${currentRestaurant.id}/menu-item/${editingItem.id}/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение успешно загружено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    if (!currentRestaurant || !editingItem) return
+
+    setIsLoading(true)
+    try {
+      const response = await apiClient.instance.delete<MenuItem>(
+        `/admin-api/r/${currentRestaurant.id}/menu-item/${editingItem.id}/image`
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение удалено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const onSubmit = async (data: MenuItemFormData) => {
     if (!currentRestaurant) return
 
     setIsLoading(true)
     try {
-      const payload = { ...data, imageId }
+      // Создаем или обновляем сущность без изображения
+      let itemId: number
       if (editingItem) {
-        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/menu-item/${editingItem.id}`, payload)
+        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/menu-item/${editingItem.id}`, data)
+        itemId = editingItem.id
         toast.success('Блюдо обновлено')
       } else {
-        await apiClient.instance.post(`/admin-api/r/${currentRestaurant.id}/menu-item`, payload)
+        const response = await apiClient.instance.post<MenuItem>(
+          `/admin-api/r/${currentRestaurant.id}/menu-item`,
+          data
+        )
+        itemId = response.data.id
         toast.success('Блюдо создано')
       }
+
+      // Если есть файл изображения, загружаем его
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+
+        await apiClient.instance.post(
+          `/admin-api/r/${currentRestaurant.id}/menu-item/${itemId}/image`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+      }
+
       setIsModalOpen(false)
       reset()
       setEditingItem(null)
       setImageId(null)
+      setImageFile(null)
       loadItems()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
@@ -131,12 +201,13 @@ export default function MenuItemsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1>Блюда меню</h1>
         <button
-          onClick={() => {
-            setEditingItem(null)
-            reset()
-            setImageId(null)
-            setIsModalOpen(true)
-          }}
+        onClick={() => {
+          setEditingItem(null)
+          reset()
+          setImageId(null)
+          setImageFile(null)
+          setIsModalOpen(true)
+        }}
           style={{
             padding: '0.75rem 1.5rem',
             backgroundColor: '#007bff',
@@ -190,6 +261,7 @@ export default function MenuItemsPage() {
                     onClick={() => {
                       setEditingItem(item)
                       setImageId(item.imageId || null)
+                      setImageFile(null)
                       reset({
                         name: item.name,
                         description: item.description || '',
@@ -227,6 +299,7 @@ export default function MenuItemsPage() {
           reset()
           setEditingItem(null)
           setImageId(null)
+          setImageFile(null)
         }}
         title={editingItem ? 'Редактировать блюдо' : 'Добавить блюдо'}
         size="large"
@@ -293,10 +366,14 @@ export default function MenuItemsPage() {
             <label>Изображение</label>
             <ImageUpload
               currentImageId={imageId}
-              onImageUploaded={setImageId}
-              onImageRemoved={() => setImageId(null)}
+              onImageUploaded={editingItem ? handleImageUpload : (file: File) => setImageFile(file)}
+              onImageRemoved={editingItem ? handleImageRemove : () => {
+                setImageId(null)
+                setImageFile(null)
+              }}
               type="dish"
               recommendedSize="800x600px - 1200x900px"
+              uploadToEntity={true}
             />
           </div>
 
@@ -308,6 +385,7 @@ export default function MenuItemsPage() {
                 reset()
                 setEditingItem(null)
                 setImageId(null)
+                setImageFile(null)
               }}
               style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
             >

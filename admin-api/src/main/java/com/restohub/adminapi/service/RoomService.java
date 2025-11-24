@@ -10,6 +10,8 @@ import com.restohub.adminapi.repository.ImageRepository;
 import com.restohub.adminapi.repository.RestaurantRepository;
 import com.restohub.adminapi.repository.RoomRepository;
 import com.restohub.adminapi.repository.TableRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,7 +20,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,11 +30,14 @@ import java.util.stream.Collectors;
 @Service
 public class RoomService {
     
+    private static final Logger logger = LoggerFactory.getLogger(RoomService.class);
+    
     private final RoomRepository roomRepository;
     private final RestaurantRepository restaurantRepository;
     private final FloorRepository floorRepository;
     private final ImageRepository imageRepository;
     private final TableRepository tableRepository;
+    private final ImageService imageService;
     
     @Autowired
     public RoomService(
@@ -38,12 +45,14 @@ public class RoomService {
             RestaurantRepository restaurantRepository,
             FloorRepository floorRepository,
             ImageRepository imageRepository,
-            TableRepository tableRepository) {
+            TableRepository tableRepository,
+            ImageService imageService) {
         this.roomRepository = roomRepository;
         this.restaurantRepository = restaurantRepository;
         this.floorRepository = floorRepository;
         this.imageRepository = imageRepository;
         this.tableRepository = tableRepository;
+        this.imageService = imageService;
     }
     
     @Transactional
@@ -215,6 +224,58 @@ public class RoomService {
         response.setIsActive(room.getIsActive());
         response.setCreatedAt(room.getCreatedAt() != null ? room.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         return response;
+    }
+    
+    @Transactional
+    public RoomResponse uploadRoomImage(Long restaurantId, Long roomId, MultipartFile file) throws IOException {
+        Room room = roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("ROOM_NOT_FOUND"));
+        
+        // Загружаем изображение
+        ImageResponse imageResponse = imageService.uploadImage(file);
+        Image image = imageRepository.findByIdAndIsActiveTrue(imageResponse.getId())
+                .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
+        
+        // Удаляем старое изображение, если оно было
+        Image oldImage = room.getImage();
+        room.setImage(image);
+        
+        room = roomRepository.save(room);
+        
+        // Мягко удаляем старое изображение, если оно было и больше не используется
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete old image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(room);
+    }
+    
+    @Transactional
+    public RoomResponse deleteRoomImage(Long restaurantId, Long roomId) {
+        Room room = roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("ROOM_NOT_FOUND"));
+        
+        Image oldImage = room.getImage();
+        room.setImage(null);
+        
+        room = roomRepository.save(room);
+        
+        // Мягко удаляем изображение, если оно было
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(room);
     }
     
     private Sort buildSort(String sortBy, String sortOrder) {

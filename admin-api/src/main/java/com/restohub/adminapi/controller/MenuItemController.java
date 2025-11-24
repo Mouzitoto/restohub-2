@@ -11,9 +11,12 @@ import com.restohub.adminapi.service.MenuItemService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -54,7 +57,7 @@ public class MenuItemController {
     @GetMapping("/{itemId}")
     public ResponseEntity<MenuItemResponse> getMenuItem(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long itemId) {
+            @PathVariable("itemId") Long itemId) {
         MenuItemResponse response = menuItemService.getMenuItem(restaurantId, itemId);
         return ResponseEntity.ok(response);
     }
@@ -62,7 +65,7 @@ public class MenuItemController {
     @PutMapping("/{itemId}")
     public ResponseEntity<MenuItemResponse> updateMenuItem(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long itemId,
+            @PathVariable("itemId") Long itemId,
             @Valid @RequestBody UpdateMenuItemRequest request) {
         MenuItemResponse response = menuItemService.updateMenuItem(restaurantId, itemId, request);
         return ResponseEntity.ok(response);
@@ -71,7 +74,7 @@ public class MenuItemController {
     @DeleteMapping("/{itemId}")
     public ResponseEntity<Void> deleteMenuItem(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long itemId) {
+            @PathVariable("itemId") Long itemId) {
         menuItemService.deleteMenuItem(restaurantId, itemId);
         return ResponseEntity.noContent().build();
     }
@@ -82,6 +85,27 @@ public class MenuItemController {
             @Valid @RequestBody ReorderMenuItemsRequest request) {
         menuItemService.reorderMenuItems(restaurantId, request);
         return ResponseEntity.ok(new MessageResponse("Порядок блюд успешно обновлен"));
+    }
+    
+    @PostMapping(value = "/{itemId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MenuItemResponse> uploadMenuItemImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("itemId") Long itemId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            MenuItemResponse response = menuItemService.uploadMenuItemImage(restaurantId, itemId, file);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            throw new RuntimeException("IMAGE_UPLOAD_ERROR");
+        }
+    }
+    
+    @DeleteMapping("/{itemId}/image")
+    public ResponseEntity<MenuItemResponse> deleteMenuItemImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("itemId") Long itemId) {
+        MenuItemResponse response = menuItemService.deleteMenuItemImage(restaurantId, itemId);
+        return ResponseEntity.ok(response);
     }
 }
 

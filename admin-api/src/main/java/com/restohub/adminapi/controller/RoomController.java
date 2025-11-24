@@ -9,9 +9,12 @@ import com.restohub.adminapi.service.RoomService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -50,7 +53,7 @@ public class RoomController {
     @GetMapping("/{roomId}")
     public ResponseEntity<RoomResponse> getRoom(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long roomId) {
+            @PathVariable("roomId") Long roomId) {
         RoomResponse response = roomService.getRoom(restaurantId, roomId);
         return ResponseEntity.ok(response);
     }
@@ -58,7 +61,7 @@ public class RoomController {
     @PutMapping("/{roomId}")
     public ResponseEntity<RoomResponse> updateRoom(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @Valid @RequestBody UpdateRoomRequest request) {
         RoomResponse response = roomService.updateRoom(restaurantId, roomId, request);
         return ResponseEntity.ok(response);
@@ -67,9 +70,30 @@ public class RoomController {
     @DeleteMapping("/{roomId}")
     public ResponseEntity<Void> deleteRoom(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long roomId) {
+            @PathVariable("roomId") Long roomId) {
         roomService.deleteRoom(restaurantId, roomId);
         return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping(value = "/{roomId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RoomResponse> uploadRoomImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("roomId") Long roomId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            RoomResponse response = roomService.uploadRoomImage(restaurantId, roomId, file);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            throw new RuntimeException("IMAGE_UPLOAD_ERROR");
+        }
+    }
+    
+    @DeleteMapping("/{roomId}/image")
+    public ResponseEntity<RoomResponse> deleteRoomImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("roomId") Long roomId) {
+        RoomResponse response = roomService.deleteRoomImage(restaurantId, roomId);
+        return ResponseEntity.ok(response);
     }
 }
 

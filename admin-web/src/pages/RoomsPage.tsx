@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 import { apiClient } from '../services/apiClient'
 import Modal from '../components/common/Modal'
 import ImageUpload from '../components/common/ImageUpload'
+import ImagePreview from '../components/common/ImagePreview'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,6 +27,7 @@ export default function RoomsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [imageId, setImageId] = useState<number | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
 
@@ -77,23 +79,92 @@ export default function RoomsPage() {
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    if (!currentRestaurant || !editingRoom) return
+
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiClient.instance.post<Room>(
+        `/admin-api/r/${currentRestaurant.id}/room/${editingRoom.id}/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение успешно загружено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    if (!currentRestaurant || !editingRoom) return
+
+    setIsLoading(true)
+    try {
+      const response = await apiClient.instance.delete<Room>(
+        `/admin-api/r/${currentRestaurant.id}/room/${editingRoom.id}/image`
+      )
+
+      setImageId(response.data.imageId ?? null)
+      toast.success('Изображение удалено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const onSubmit = async (data: RoomFormData) => {
     if (!currentRestaurant) return
 
     setIsLoading(true)
     try {
-      const payload = { ...data, imageId }
+      // Создаем или обновляем сущность без изображения
+      let roomId: number
       if (editingRoom) {
-        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/room/${editingRoom.id}`, payload)
+        await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}/room/${editingRoom.id}`, data)
+        roomId = editingRoom.id
         toast.success('Зал обновлен')
       } else {
-        await apiClient.instance.post(`/admin-api/r/${currentRestaurant.id}/room`, payload)
+        const response = await apiClient.instance.post<Room>(
+          `/admin-api/r/${currentRestaurant.id}/room`,
+          data
+        )
+        roomId = response.data.id
         toast.success('Зал создан')
       }
+
+      // Если есть файл изображения, загружаем его
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+
+        await apiClient.instance.post(
+          `/admin-api/r/${currentRestaurant.id}/room/${roomId}/image`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+      }
+
       setIsModalOpen(false)
       reset()
       setEditingRoom(null)
       setImageId(null)
+      setImageFile(null)
       loadRooms()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
@@ -128,6 +199,7 @@ export default function RoomsPage() {
             setEditingRoom(null)
             reset()
             setImageId(null)
+            setImageFile(null)
             setIsModalOpen(true)
           }}
           style={{
@@ -147,6 +219,7 @@ export default function RoomsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>План помещения</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Название</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Этаж</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Количество столов</th>
@@ -156,6 +229,9 @@ export default function RoomsPage() {
           <tbody>
             {rooms.map((room) => (
               <tr key={room.id} style={{ borderTop: '1px solid #eee' }}>
+                <td style={{ padding: '1rem' }}>
+                  <ImagePreview imageId={room.imageId ?? null} size="small" />
+                </td>
                 <td style={{ padding: '1rem' }}>{room.name}</td>
                 <td style={{ padding: '1rem' }}>
                   {floors.find((f) => f.id === room.floorId)?.floorNumber || '-'}
@@ -166,6 +242,7 @@ export default function RoomsPage() {
                     onClick={() => {
                       setEditingRoom(room)
                       setImageId(room.imageId || null)
+                      setImageFile(null)
                       reset({
                         name: room.name,
                         floorId: room.floorId,
@@ -204,6 +281,7 @@ export default function RoomsPage() {
           reset()
           setEditingRoom(null)
           setImageId(null)
+          setImageFile(null)
         }}
         title={editingRoom ? 'Редактировать зал' : 'Создать зал'}
         size="medium"
@@ -251,10 +329,14 @@ export default function RoomsPage() {
             <label>План помещения</label>
             <ImageUpload
               currentImageId={imageId}
-              onImageUploaded={setImageId}
-              onImageRemoved={() => setImageId(null)}
+              onImageUploaded={editingRoom ? handleImageUpload : (file: File) => setImageFile(file)}
+              onImageRemoved={editingRoom ? handleImageRemove : () => {
+                setImageId(null)
+                setImageFile(null)
+              }}
               type="room"
               recommendedSize="минимум 1920x1080px"
+              uploadToEntity={true}
             />
           </div>
 
@@ -266,6 +348,7 @@ export default function RoomsPage() {
                 reset()
                 setEditingRoom(null)
                 setImageId(null)
+                setImageFile(null)
               }}
               style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
             >

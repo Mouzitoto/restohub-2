@@ -3,7 +3,23 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import { tokenStorage } from '../utils/tokenStorage'
 import type { ApiError } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082'
+// Устанавливаем базовый URL API, используя переменную окружения или дефолтное значение
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  console.log('[apiClient] getApiBaseUrl - envUrl:', envUrl, 'type:', typeof envUrl)
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    const result = envUrl.trim()
+    console.log('[apiClient] getApiBaseUrl - using envUrl:', result)
+    return result
+  }
+  // Дефолтное значение для разработки и тестов
+  const defaultUrl = 'http://localhost:8082'
+  console.log('[apiClient] getApiBaseUrl - using default:', defaultUrl)
+  return defaultUrl
+}
+
+const API_BASE_URL = getApiBaseUrl()
+console.log('[apiClient] API_BASE_URL constant:', API_BASE_URL)
 
 class ApiClient {
   private client: AxiosInstance
@@ -14,12 +30,21 @@ class ApiClient {
   }> = []
 
   constructor() {
+    // Убеждаемся, что baseURL всегда установлен
+    const baseURL = API_BASE_URL || 'http://localhost:8082'
+    console.log('[apiClient] constructor - baseURL:', baseURL)
+    console.log('[apiClient] constructor - API_BASE_URL:', API_BASE_URL)
+    console.log('[apiClient] constructor - import.meta.env.VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL)
+    
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: baseURL,
       headers: {
         'Content-Type': 'application/json',
       },
     })
+
+    console.log('[apiClient] constructor - client.defaults.baseURL:', this.client.defaults.baseURL)
+    console.log('[apiClient] constructor - client created successfully')
 
     this.setupInterceptors()
   }
@@ -28,20 +53,43 @@ class ApiClient {
     // Request interceptor - добавляем токен
     this.client.interceptors.request.use(
       (config) => {
-        const token = tokenStorage.getAccessToken()
-        if (token) {
-          // Устанавливаем заголовок Authorization
-          // Используем оба способа для совместимости с разными версиями axios
-          if (config.headers) {
-            if (typeof config.headers.set === 'function') {
-              // AxiosHeaders (axios >= 1.0)
-              config.headers.set('Authorization', `Bearer ${token}`)
+        console.log('[apiClient] request interceptor - config.url:', config.url)
+        console.log('[apiClient] request interceptor - config.baseURL:', config.baseURL)
+        console.log('[apiClient] request interceptor - full URL will be:', `${config.baseURL}${config.url}`)
+        
+        // Публичные эндпоинты, для которых не нужно добавлять токен
+        const publicEndpoints = [
+          '/auth/login',
+          '/auth/refresh',
+          '/auth/forgot-password',
+          '/auth/reset-password',
+          '/auth/register',
+          '/auth/verify-email',
+          '/auth/resend-verification-code',
+          '/auth/terms',
+        ]
+        
+        const isPublicEndpoint = publicEndpoints.some(endpoint => 
+          config.url?.includes(endpoint)
+        )
+        
+        // Не добавляем токен для публичных эндпоинтов
+        if (!isPublicEndpoint) {
+          const token = tokenStorage.getAccessToken()
+          if (token) {
+            // Устанавливаем заголовок Authorization
+            // Используем оба способа для совместимости с разными версиями axios
+            if (config.headers) {
+              if (typeof config.headers.set === 'function') {
+                // AxiosHeaders (axios >= 1.0)
+                config.headers.set('Authorization', `Bearer ${token}`)
+              } else {
+                // Обычный объект (старые версии)
+                config.headers['Authorization'] = `Bearer ${token}`
+              }
             } else {
-              // Обычный объект (старые версии)
-              config.headers['Authorization'] = `Bearer ${token}`
+              config.headers = { Authorization: `Bearer ${token}` } as any
             }
-          } else {
-            config.headers = { Authorization: `Bearer ${token}` } as any
           }
         }
 
@@ -65,9 +113,17 @@ class ApiClient {
         // Если ошибка 401 и это не запрос на логин/refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
           const exceptionName = error.response.data?.exceptionName
+          const isLoginOrRefreshRequest = 
+            originalRequest.url?.includes('/auth/login') || 
+            originalRequest.url?.includes('/auth/refresh')
 
-          // Если токен истек - пытаемся обновить
-          if (exceptionName === 'TOKEN_EXPIRED') {
+          // Пропускаем обработку для запросов на логин/refresh
+          if (isLoginOrRefreshRequest) {
+            return Promise.reject(error)
+          }
+
+          // Если токен истек или exceptionName не указан (возможно, токен просто истек) - пытаемся обновить
+          if (exceptionName === 'TOKEN_EXPIRED' || !exceptionName) {
             if (this.isRefreshing) {
               // Если уже обновляем токен - добавляем в очередь
               return new Promise((resolve, reject) => {
@@ -166,7 +222,9 @@ class ApiClient {
 
   private handleAuthError(): void {
     tokenStorage.clearTokens()
-    window.location.href = '/login'
+    // Используем кастомное событие для SPA-навигации вместо window.location.href
+    // Это предотвращает полную перезагрузку страницы и потерю истории логов
+    window.dispatchEvent(new CustomEvent('auth:logout', { detail: { redirectTo: '/login' } }))
   }
 
   get instance(): AxiosInstance {

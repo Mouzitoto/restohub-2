@@ -1,6 +1,7 @@
 package com.restohub.adminapi.service;
 
 import com.restohub.adminapi.dto.CreateRestaurantRequest;
+import com.restohub.adminapi.dto.ImageResponse;
 import com.restohub.adminapi.dto.RestaurantResponse;
 import com.restohub.adminapi.entity.*;
 import com.restohub.adminapi.repository.*;
@@ -10,12 +11,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -41,6 +45,9 @@ class RestaurantServiceTest {
     
     @Mock
     private UserRepository userRepository;
+    
+    @Mock
+    private ImageService imageService;
     
     @InjectMocks
     private RestaurantService restaurantService;
@@ -200,6 +207,248 @@ class RestaurantServiceTest {
         verify(userRepository, times(1)).findByEmailAndIsActiveTrue("manager@test.com");
         verify(userRepository, never()).findByIdAndIsActiveTrue(999L);
         verify(userRestaurantRepository, times(1)).save(any(UserRestaurant.class));
+    }
+    
+    @Test
+    void uploadRestaurantImage_Logo_Success() {
+        // Arrange
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "logo.jpg",
+                "image/jpeg",
+                "test image content".getBytes()
+        );
+        
+        ImageResponse imageResponse = new ImageResponse();
+        imageResponse.setId(123L);
+        imageResponse.setMimeType("image/jpeg");
+        imageResponse.setFileSize(1024L);
+        
+        Image image = new Image();
+        image.setId(123L);
+        image.setIsActive(true);
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        try {
+            doReturn(imageResponse).when(imageService).uploadImage(any(MultipartFile.class));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        when(imageRepository.findByIdAndIsActiveTrue(123L))
+                .thenReturn(Optional.of(image));
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Act
+        RestaurantResponse response;
+        try {
+            response = restaurantService.uploadRestaurantImage(1L, file, "logo");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        try {
+            verify(imageService, times(1)).uploadImage(any(MultipartFile.class));
+        } catch (IOException e) {
+            // verify не бросает IOException, это для компилятора
+        }
+        verify(restaurantRepository, times(1)).save(any(Restaurant.class));
+    }
+    
+    @Test
+    void uploadRestaurantImage_Background_Success() {
+        // Arrange
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "background.jpg",
+                "image/jpeg",
+                "test image content".getBytes()
+        );
+        
+        ImageResponse imageResponse = new ImageResponse();
+        imageResponse.setId(124L);
+        imageResponse.setMimeType("image/jpeg");
+        imageResponse.setFileSize(2048L);
+        
+        Image image = new Image();
+        image.setId(124L);
+        image.setIsActive(true);
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        try {
+            doReturn(imageResponse).when(imageService).uploadImage(any(MultipartFile.class));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        when(imageRepository.findByIdAndIsActiveTrue(124L))
+                .thenReturn(Optional.of(image));
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Act
+        RestaurantResponse response;
+        try {
+            response = restaurantService.uploadRestaurantImage(1L, file, "background");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        try {
+            verify(imageService, times(1)).uploadImage(any(MultipartFile.class));
+        } catch (IOException e) {
+            // verify не бросает IOException, это для компилятора
+        }
+        verify(restaurantRepository, times(1)).save(any(Restaurant.class));
+    }
+    
+    @Test
+    void uploadRestaurantImage_InvalidType_ThrowsException() {
+        // Arrange
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "image.jpg",
+                "image/jpeg",
+                "test image content".getBytes()
+        );
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            try {
+                restaurantService.uploadRestaurantImage(1L, file, "invalid");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        try {
+            verify(imageService, never()).uploadImage(any());
+        } catch (IOException e) {
+            // verify не бросает IOException, это для компилятора
+        }
+    }
+    
+    @Test
+    void uploadRestaurantImage_RestaurantNotFound_ThrowsException() {
+        // Arrange
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "logo.jpg",
+                "image/jpeg",
+                "test image content".getBytes()
+        );
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(999L))
+                .thenReturn(Optional.empty());
+        
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            try {
+                restaurantService.uploadRestaurantImage(999L, file, "logo");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(999L);
+        try {
+            verify(imageService, never()).uploadImage(any());
+        } catch (IOException e) {
+            // verify не бросает IOException, это для компилятора
+        }
+    }
+    
+    @Test
+    void deleteRestaurantImage_Logo_Success() {
+        // Arrange
+        Image oldLogo = new Image();
+        oldLogo.setId(123L);
+        oldLogo.setIsActive(true);
+        restaurant.setLogoImage(oldLogo);
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(imageService).deleteImage(123L);
+        
+        // Act
+        RestaurantResponse response = restaurantService.deleteRestaurantImage(1L, "logo");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).save(any(Restaurant.class));
+        verify(imageService, times(1)).deleteImage(123L);
+    }
+    
+    @Test
+    void deleteRestaurantImage_Background_Success() {
+        // Arrange
+        Image oldBg = new Image();
+        oldBg.setId(124L);
+        oldBg.setIsActive(true);
+        restaurant.setBgImage(oldBg);
+        
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(imageService).deleteImage(124L);
+        
+        // Act
+        RestaurantResponse response = restaurantService.deleteRestaurantImage(1L, "background");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).save(any(Restaurant.class));
+        verify(imageService, times(1)).deleteImage(124L);
+    }
+    
+    @Test
+    void deleteRestaurantImage_InvalidType_ThrowsException() {
+        // Arrange
+        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(Optional.of(restaurant));
+        
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            restaurantService.deleteRestaurantImage(1L, "invalid");
+        });
+        
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(imageService, never()).deleteImage(any());
+    }
+    
+    @Test
+    void deleteRestaurantImage_RestaurantNotFound_ThrowsException() {
+        // Arrange
+        when(restaurantRepository.findByIdAndIsActiveTrue(999L))
+                .thenReturn(Optional.empty());
+        
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            restaurantService.deleteRestaurantImage(999L, "logo");
+        });
+        
+        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(999L);
+        verify(imageService, never()).deleteImage(any());
     }
     
     private void setupSecurityContext(String email, String role) {

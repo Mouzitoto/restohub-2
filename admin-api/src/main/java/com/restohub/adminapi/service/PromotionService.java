@@ -9,6 +9,8 @@ import com.restohub.adminapi.repository.ImageRepository;
 import com.restohub.adminapi.repository.PromotionRepository;
 import com.restohub.adminapi.repository.PromotionTypeRepository;
 import com.restohub.adminapi.repository.RestaurantRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +19,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,21 +30,26 @@ import java.util.stream.Collectors;
 @Service
 public class PromotionService {
     
+    private static final Logger logger = LoggerFactory.getLogger(PromotionService.class);
+    
     private final PromotionRepository promotionRepository;
     private final RestaurantRepository restaurantRepository;
     private final PromotionTypeRepository promotionTypeRepository;
     private final ImageRepository imageRepository;
+    private final ImageService imageService;
     
     @Autowired
     public PromotionService(
             PromotionRepository promotionRepository,
             RestaurantRepository restaurantRepository,
             PromotionTypeRepository promotionTypeRepository,
-            ImageRepository imageRepository) {
+            ImageRepository imageRepository,
+            ImageService imageService) {
         this.promotionRepository = promotionRepository;
         this.restaurantRepository = restaurantRepository;
         this.promotionTypeRepository = promotionTypeRepository;
         this.imageRepository = imageRepository;
+        this.imageService = imageService;
     }
     
     @Transactional
@@ -340,6 +349,58 @@ public class PromotionService {
         response.setIsActive(promotion.getIsActive());
         response.setCreatedAt(promotion.getCreatedAt() != null ? promotion.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         return response;
+    }
+    
+    @Transactional
+    public PromotionResponse uploadPromotionImage(Long restaurantId, Long promotionId, MultipartFile file) throws IOException {
+        Promotion promotion = promotionRepository.findByIdAndRestaurantIdAndIsActiveTrue(promotionId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("PROMOTION_NOT_FOUND"));
+        
+        // Загружаем изображение
+        ImageResponse imageResponse = imageService.uploadImage(file);
+        Image image = imageRepository.findByIdAndIsActiveTrue(imageResponse.getId())
+                .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
+        
+        // Удаляем старое изображение, если оно было
+        Image oldImage = promotion.getImage();
+        promotion.setImage(image);
+        
+        promotion = promotionRepository.save(promotion);
+        
+        // Мягко удаляем старое изображение, если оно было и больше не используется
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete old image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(promotion);
+    }
+    
+    @Transactional
+    public PromotionResponse deletePromotionImage(Long restaurantId, Long promotionId) {
+        Promotion promotion = promotionRepository.findByIdAndRestaurantIdAndIsActiveTrue(promotionId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("PROMOTION_NOT_FOUND"));
+        
+        Image oldImage = promotion.getImage();
+        promotion.setImage(null);
+        
+        promotion = promotionRepository.save(promotion);
+        
+        // Мягко удаляем изображение, если оно было
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(promotion);
     }
     
     private Sort buildSort(String sortBy, String sortOrder) {

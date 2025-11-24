@@ -22,15 +22,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     
+    // Публичные эндпоинты, для которых не нужно проверять токен
+    private static final String[] PUBLIC_ENDPOINTS = {
+        "/auth/login",
+        "/auth/refresh",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/auth/register",
+        "/auth/verify-email",
+        "/auth/resend-verification-code",
+        "/auth/terms",
+        "/actuator/health",
+        "/actuator/info"
+    };
+    
     private final JwtTokenProvider jwtTokenProvider;
     
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
     }
     
+    private boolean isPublicEndpoint(String requestURI) {
+        for (String endpoint : PUBLIC_ENDPOINTS) {
+            if (requestURI.startsWith(endpoint)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        String requestURI = request.getRequestURI();
+        
+        // Пропускаем публичные эндпоинты без проверки токена
+        if (isPublicEndpoint(requestURI)) {
+            logger.debug("Skipping JWT authentication for public endpoint: {}", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
         
         String authHeader = request.getHeader(AUTHORIZATION_HEADER);
         

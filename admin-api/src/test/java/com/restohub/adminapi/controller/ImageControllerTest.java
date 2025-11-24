@@ -1,6 +1,5 @@
 package com.restohub.adminapi.controller;
 
-import com.restohub.adminapi.dto.ImageResponse;
 import com.restohub.adminapi.service.ImageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,7 +8,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -34,100 +32,6 @@ class ImageControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(imageController)
                 .setControllerAdvice(new TestExceptionHandler())
                 .build();
-    }
-
-    // ========== POST /image - загрузка изображения ==========
-
-    @Test
-    void testUploadImage_Success() throws Exception {
-        // Arrange
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "test image content".getBytes()
-        );
-
-        ImageResponse response = new ImageResponse();
-        response.setId(1L);
-        response.setMimeType("image/jpeg");
-        response.setFileSize(1024L);
-
-        when(imageService.uploadImage(any())).thenReturn(response);
-
-        // Act & Assert
-        mockMvc.perform(multipart("/image")
-                        .file(file))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.mimeType").value("image/jpeg"))
-                .andExpect(jsonPath("$.fileSize").value(1024L));
-
-        verify(imageService, times(1)).uploadImage(any());
-    }
-
-    @Test
-    void testUploadImage_EmptyFile() throws Exception {
-        // Arrange
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "empty.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                new byte[0]
-        );
-
-        when(imageService.uploadImage(any()))
-                .thenThrow(new RuntimeException("FILE_REQUIRED"));
-
-        // Act & Assert
-        mockMvc.perform(multipart("/image")
-                        .file(file))
-                .andExpect(status().isBadRequest());
-
-        verify(imageService, times(1)).uploadImage(any());
-    }
-
-    @Test
-    void testUploadImage_FileTooLarge() throws Exception {
-        // Arrange
-        byte[] largeContent = new byte[11 * 1024 * 1024]; // 11MB
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "large.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                largeContent
-        );
-
-        when(imageService.uploadImage(any()))
-                .thenThrow(new RuntimeException("FILE_TOO_LARGE"));
-
-        // Act & Assert
-        mockMvc.perform(multipart("/image")
-                        .file(file))
-                .andExpect(status().isBadRequest());
-
-        verify(imageService, times(1)).uploadImage(any());
-    }
-
-    @Test
-    void testUploadImage_InvalidFormat() throws Exception {
-        // Arrange
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test.txt",
-                MediaType.TEXT_PLAIN_VALUE,
-                "not an image".getBytes()
-        );
-
-        when(imageService.uploadImage(any()))
-                .thenThrow(new RuntimeException("INVALID_FILE_FORMAT"));
-
-        // Act & Assert
-        mockMvc.perform(multipart("/image")
-                        .file(file))
-                .andExpect(status().isBadRequest());
-
-        verify(imageService, times(1)).uploadImage(any());
     }
 
     // ========== GET /image - получение изображения ==========

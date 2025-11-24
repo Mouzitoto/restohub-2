@@ -11,10 +11,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -292,6 +294,128 @@ class PromotionControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(promotionService, times(1)).deletePromotion(1L, 999L);
+    }
+
+    // ========== POST /r/{id}/promotion/{promotionId}/image - загрузка изображения акции ==========
+
+    @Test
+    void testUploadPromotionImage_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "promotion.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        PromotionResponse response = new PromotionResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        PromotionResponse.PromotionTypeInfo promotionTypeInfo = new PromotionResponse.PromotionTypeInfo();
+        promotionTypeInfo.setId(1L);
+        promotionTypeInfo.setCode("DISCOUNT");
+        promotionTypeInfo.setName("Скидка");
+        response.setPromotionType(promotionTypeInfo);
+        response.setTitle("Скидка 20%");
+        response.setImageId(123L);
+        response.setIsActive(true);
+
+        doReturn(response).when(promotionService).uploadPromotionImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/promotion/1/image")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").value(123L));
+
+        verify(promotionService, times(1)).uploadPromotionImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadPromotionImage_NotFound() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "promotion.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("PROMOTION_NOT_FOUND"))
+                .when(promotionService).uploadPromotionImage(eq(1L), eq(999L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/promotion/999/image")
+                        .file(file))
+                .andExpect(status().isNotFound());
+
+        verify(promotionService, times(1)).uploadPromotionImage(eq(1L), eq(999L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadPromotionImage_IOException() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "promotion.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
+        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        doThrow(new IOException("IO_ERROR"))
+                .when(promotionService).uploadPromotionImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/promotion/1/image")
+                        .file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.exceptionName").value("IMAGE_UPLOAD_ERROR"));
+
+        verify(promotionService, times(1)).uploadPromotionImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    // ========== DELETE /r/{id}/promotion/{promotionId}/image - удаление изображения акции ==========
+
+    @Test
+    void testDeletePromotionImage_Success() throws Exception {
+        // Arrange
+        PromotionResponse response = new PromotionResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        PromotionResponse.PromotionTypeInfo promotionTypeInfo = new PromotionResponse.PromotionTypeInfo();
+        promotionTypeInfo.setId(1L);
+        promotionTypeInfo.setCode("DISCOUNT");
+        promotionTypeInfo.setName("Скидка");
+        response.setPromotionType(promotionTypeInfo);
+        response.setTitle("Скидка 20%");
+        response.setImageId(null);
+        response.setIsActive(true);
+
+        when(promotionService.deletePromotionImage(1L, 1L)).thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/promotion/1/image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").isEmpty());
+
+        verify(promotionService, times(1)).deletePromotionImage(1L, 1L);
+    }
+
+    @Test
+    void testDeletePromotionImage_NotFound() throws Exception {
+        // Arrange
+        when(promotionService.deletePromotionImage(1L, 999L))
+                .thenThrow(new RuntimeException("PROMOTION_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/promotion/999/image"))
+                .andExpect(status().isNotFound());
+
+        verify(promotionService, times(1)).deletePromotionImage(1L, 999L);
     }
 }
 

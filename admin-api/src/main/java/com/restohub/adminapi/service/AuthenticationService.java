@@ -92,12 +92,20 @@ public class AuthenticationService {
         
         RefreshToken tokenEntity = tokenOpt.get();
         
-        if (tokenEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
+        // Проверяем истечение JWT токена (JWT содержит время истечения в UTC)
+        // Проверка expires_at в БД избыточна, так как JWT уже содержит эту информацию
+        try {
+            if (jwtTokenProvider.isTokenExpired(refreshToken)) {
+                refreshTokenRepository.delete(tokenEntity);
+                throw new RuntimeException("REFRESH_TOKEN_EXPIRED");
+            }
+        } catch (Exception e) {
+            // Если не можем проверить истечение (токен невалиден), удаляем из БД
             refreshTokenRepository.delete(tokenEntity);
-            throw new RuntimeException("REFRESH_TOKEN_EXPIRED");
+            throw new RuntimeException("INVALID_REFRESH_TOKEN");
         }
         
-        // Валидируем токен через JWT
+        // Валидируем токен через JWT (проверка подписи и структуры)
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             refreshTokenRepository.delete(tokenEntity);
             throw new RuntimeException("INVALID_REFRESH_TOKEN");

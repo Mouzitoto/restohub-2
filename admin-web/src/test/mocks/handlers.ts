@@ -1,8 +1,9 @@
 import { http, HttpResponse } from 'msw'
 
+// Используем паттерн для перехвата запросов с любым origin
 export const handlers = [
   // Auth handlers
-  http.post('/admin-api/auth/login', () => {
+  http.post('*/admin-api/auth/login', () => {
     return HttpResponse.json({
       accessToken: 'mock-access-token',
       refreshToken: 'mock-refresh-token',
@@ -11,7 +12,7 @@ export const handlers = [
     })
   }),
 
-  http.post('/admin-api/auth/refresh', () => {
+  http.post('*/admin-api/auth/refresh', () => {
     return HttpResponse.json({
       accessToken: 'new-mock-access-token',
       refreshToken: 'new-mock-refresh-token',
@@ -19,7 +20,7 @@ export const handlers = [
     })
   }),
 
-  http.get('/admin-api/auth/me', () => {
+  http.get('*/admin-api/auth/me', () => {
     return HttpResponse.json({
       email: 'test@example.com',
       role: 'MANAGER',
@@ -39,7 +40,7 @@ export const handlers = [
   }),
 
   // Restaurant handlers
-  http.get('/admin-api/r', () => {
+  http.get('*/admin-api/r', () => {
     return HttpResponse.json({
       data: [
         {
@@ -57,7 +58,7 @@ export const handlers = [
     })
   }),
 
-  http.get('/admin-api/r/:id', () => {
+  http.get('*/admin-api/r/:id', () => {
     return HttpResponse.json({
       id: 1,
       name: 'Test Restaurant',
@@ -67,7 +68,7 @@ export const handlers = [
     })
   }),
 
-  http.post('/admin-api/r', async ({ request }) => {
+  http.post('*/admin-api/r', async ({ request }) => {
     const body = await request.json() as any
     return HttpResponse.json({
       id: 1,
@@ -79,7 +80,7 @@ export const handlers = [
   }),
 
   // Menu category handlers
-  http.get('/admin-api/menu-category', () => {
+  http.get('*/admin-api/menu-category', () => {
     return HttpResponse.json({
       data: [],
       total: 0,
@@ -87,12 +88,25 @@ export const handlers = [
   }),
 
   // Analytics handlers
-  http.get('/admin-api/r/:id/analytics/overview', () => {
+  http.get('*/admin-api/r/:id/analytics/overview', () => {
     return HttpResponse.json({
       bookings: 10,
       preOrders: 5,
       revenue: 50000,
       newClients: 3,
+    })
+  }),
+
+  // Image handlers
+  http.get('*/admin-api/image', async () => {
+    // Создаем простой blob для тестирования (1x1 PNG)
+    const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    const blob = Uint8Array.from(atob(pngBase64), c => c.charCodeAt(0))
+    
+    return HttpResponse.arrayBuffer(blob.buffer, {
+      headers: {
+        'Content-Type': 'image/png',
+      },
     })
   }),
 ]

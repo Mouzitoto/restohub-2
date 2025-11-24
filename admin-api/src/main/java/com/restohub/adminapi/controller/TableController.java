@@ -10,9 +10,12 @@ import com.restohub.adminapi.service.TableService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -54,7 +57,7 @@ public class TableController {
     @GetMapping("/{tableId}")
     public ResponseEntity<TableResponse> getTable(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long tableId) {
+            @PathVariable("tableId") Long tableId) {
         TableResponse response = tableService.getTable(restaurantId, tableId);
         return ResponseEntity.ok(response);
     }
@@ -62,7 +65,7 @@ public class TableController {
     @PutMapping("/{tableId}")
     public ResponseEntity<TableResponse> updateTable(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long tableId,
+            @PathVariable("tableId") Long tableId,
             @Valid @RequestBody UpdateTableRequest request) {
         TableResponse response = tableService.updateTable(restaurantId, tableId, request);
         return ResponseEntity.ok(response);
@@ -71,7 +74,7 @@ public class TableController {
     @DeleteMapping("/{tableId}")
     public ResponseEntity<Void> deleteTable(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long tableId) {
+            @PathVariable("tableId") Long tableId) {
         tableService.deleteTable(restaurantId, tableId);
         return ResponseEntity.noContent().build();
     }
@@ -82,6 +85,27 @@ public class TableController {
             @RequestParam(value = "floorId", required = false) Long floorId,
             @RequestParam(value = "roomId", required = false) Long roomId) {
         TableMapResponse response = tableService.getTableMap(restaurantId, floorId, roomId);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping(value = "/{tableId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TableResponse> uploadTableImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("tableId") Long tableId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            TableResponse response = tableService.uploadTableImage(restaurantId, tableId, file);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            throw new RuntimeException("IMAGE_UPLOAD_ERROR");
+        }
+    }
+    
+    @DeleteMapping("/{tableId}/image")
+    public ResponseEntity<TableResponse> deleteTableImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("tableId") Long tableId) {
+        TableResponse response = tableService.deleteTableImage(restaurantId, tableId);
         return ResponseEntity.ok(response);
     }
 }

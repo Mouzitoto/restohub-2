@@ -10,9 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -291,6 +294,122 @@ class TableControllerTest {
                 .andExpect(jsonPath("$.floors").isArray());
 
         verify(tableService, times(1)).getTableMap(eq(1L), eq(1L), eq(1L));
+    }
+
+    // ========== POST /r/{id}/table/{tableId}/image - загрузка изображения стола ==========
+
+    @Test
+    void testUploadTableImage_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "table.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        TableResponse response = new TableResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setRoomId(1L);
+        response.setTableNumber("1");
+        response.setCapacity(4);
+        response.setImageId(123L);
+        response.setIsActive(true);
+
+        doReturn(response).when(tableService).uploadTableImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/table/1/image")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").value(123L));
+
+        verify(tableService, times(1)).uploadTableImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadTableImage_NotFound() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "table.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("TABLE_NOT_FOUND"))
+                .when(tableService).uploadTableImage(eq(1L), eq(999L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/table/999/image")
+                        .file(file))
+                .andExpect(status().isNotFound());
+
+        verify(tableService, times(1)).uploadTableImage(eq(1L), eq(999L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadTableImage_IOException() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "table.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
+        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        doThrow(new IOException("IO_ERROR"))
+                .when(tableService).uploadTableImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/table/1/image")
+                        .file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.exceptionName").value("IMAGE_UPLOAD_ERROR"));
+
+        verify(tableService, times(1)).uploadTableImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    // ========== DELETE /r/{id}/table/{tableId}/image - удаление изображения стола ==========
+
+    @Test
+    void testDeleteTableImage_Success() throws Exception {
+        // Arrange
+        TableResponse response = new TableResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setRoomId(1L);
+        response.setTableNumber("1");
+        response.setCapacity(4);
+        response.setImageId(null);
+        response.setIsActive(true);
+
+        when(tableService.deleteTableImage(1L, 1L)).thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/table/1/image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").isEmpty());
+
+        verify(tableService, times(1)).deleteTableImage(1L, 1L);
+    }
+
+    @Test
+    void testDeleteTableImage_NotFound() throws Exception {
+        // Arrange
+        when(tableService.deleteTableImage(1L, 999L))
+                .thenThrow(new RuntimeException("TABLE_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/table/999/image"))
+                .andExpect(status().isNotFound());
+
+        verify(tableService, times(1)).deleteTableImage(1L, 999L);
     }
 }
 

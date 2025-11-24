@@ -135,5 +135,41 @@ class JwtAuthenticationFilterTest {
         
         verify(jwtTokenProvider, times(1)).isTokenExpired(expiredToken);
     }
+
+    @Test
+    void testDoFilterInternal_PublicEndpoint_IgnoresToken() throws Exception {
+        // Arrange
+        String expiredToken = "expired-token";
+        request.setRequestURI("/auth/login");
+        request.addHeader("Authorization", "Bearer " + expiredToken);
+
+        // Act
+        filter.doFilterInternal(request, response, filterChain);
+
+        // Assert
+        // Публичный эндпоинт должен быть пропущен без проверки токена
+        assertEquals(HttpServletResponse.SC_OK, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(jwtTokenProvider, never()).isTokenExpired(anyString());
+        verify(jwtTokenProvider, never()).validateToken(anyString());
+    }
+
+    @Test
+    void testDoFilterInternal_PublicEndpointRefresh_IgnoresToken() throws Exception {
+        // Arrange
+        String expiredToken = "expired-token";
+        request.setRequestURI("/auth/refresh");
+        request.addHeader("Authorization", "Bearer " + expiredToken);
+
+        // Act
+        filter.doFilterInternal(request, response, filterChain);
+
+        // Assert
+        // Публичный эндпоинт должен быть пропущен без проверки токена
+        assertEquals(HttpServletResponse.SC_OK, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(jwtTokenProvider, never()).isTokenExpired(anyString());
+        verify(jwtTokenProvider, never()).validateToken(anyString());
+    }
 }
 

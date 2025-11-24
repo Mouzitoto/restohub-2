@@ -6,9 +6,12 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -55,7 +58,7 @@ public class PromotionController {
     @GetMapping("/{promotionId}")
     public ResponseEntity<PromotionResponse> getPromotion(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long promotionId) {
+            @PathVariable("promotionId") Long promotionId) {
         PromotionResponse response = promotionService.getPromotion(restaurantId, promotionId);
         return ResponseEntity.ok(response);
     }
@@ -63,7 +66,7 @@ public class PromotionController {
     @PutMapping("/{promotionId}")
     public ResponseEntity<PromotionResponse> updatePromotion(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long promotionId,
+            @PathVariable("promotionId") Long promotionId,
             @Valid @RequestBody UpdatePromotionRequest request) {
         PromotionResponse response = promotionService.updatePromotion(restaurantId, promotionId, request);
         return ResponseEntity.ok(response);
@@ -72,9 +75,30 @@ public class PromotionController {
     @DeleteMapping("/{promotionId}")
     public ResponseEntity<Void> deletePromotion(
             @PathVariable("id") Long restaurantId,
-            @PathVariable Long promotionId) {
+            @PathVariable("promotionId") Long promotionId) {
         promotionService.deletePromotion(restaurantId, promotionId);
         return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping(value = "/{promotionId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PromotionResponse> uploadPromotionImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("promotionId") Long promotionId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            PromotionResponse response = promotionService.uploadPromotionImage(restaurantId, promotionId, file);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            throw new RuntimeException("IMAGE_UPLOAD_ERROR");
+        }
+    }
+    
+    @DeleteMapping("/{promotionId}/image")
+    public ResponseEntity<PromotionResponse> deletePromotionImage(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("promotionId") Long promotionId) {
+        PromotionResponse response = promotionService.deletePromotionImage(restaurantId, promotionId);
+        return ResponseEntity.ok(response);
     }
 }
 

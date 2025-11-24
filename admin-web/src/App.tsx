@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { ToastProvider } from './context/ToastContext'
 import AuthGuard from './components/AuthGuard'
+import AuthRedirectHandler from './components/AuthRedirectHandler'
 import AdminLayout from './components/layout/AdminLayout'
 import LoginPage from './pages/LoginPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -27,6 +28,7 @@ function App() {
   return (
     <ToastProvider>
       <AppProvider>
+        <AuthRedirectHandler />
         <Routes>
         {/* Публичные роуты */}
         <Route path="/login" element={<LoginPage />} />

@@ -83,14 +83,66 @@ export default function RestaurantEditPage() {
 
     setIsLoading(true)
     try {
-      await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}`, {
-        ...data,
-        logoImageId,
-        bgImageId,
-      })
+      // Теперь logoImageId и bgImageId не нужно отправлять, так как они загружаются отдельно
+      await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}`, data)
       toast.success('Настройки сохранены')
+      
+      // Перезагружаем данные ресторана после сохранения
+      await loadRestaurant()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageUpload = async (file: File, imageType: 'logo' | 'background') => {
+    if (!currentRestaurant) return
+
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', imageType)
+
+      const response = await apiClient.instance.post<Restaurant>(
+        `/admin-api/r/${currentRestaurant.id}/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      // Обновляем состояние из ответа
+      setLogoImageId(response.data.logoImageId ?? null)
+      setBgImageId(response.data.bgImageId ?? null)
+      
+      toast.success('Изображение успешно загружено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleImageRemove = async (imageType: 'logo' | 'background') => {
+    if (!currentRestaurant) return
+
+    setIsLoading(true)
+    try {
+      const response = await apiClient.instance.delete<Restaurant>(
+        `/admin-api/r/${currentRestaurant.id}/image?type=${imageType}`
+      )
+
+      // Обновляем состояние из ответа
+      setLogoImageId(response.data.logoImageId ?? null)
+      setBgImageId(response.data.bgImageId ?? null)
+      
+      toast.success('Изображение удалено')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
     } finally {
       setIsLoading(false)
     }
@@ -157,24 +209,72 @@ export default function RestaurantEditPage() {
           <h2 style={{ marginBottom: '1.5rem' }}>Дизайн страницы</h2>
 
           <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Логотип ресторана</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '500' }}>Логотип ресторана</label>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '12px',
+                backgroundColor: logoImageId ? '#e8f5e9' : '#fff3e0',
+                color: logoImageId ? '#2e7d32' : '#e65100',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}>
+                <span style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  backgroundColor: logoImageId ? '#4caf50' : '#ff9800',
+                  display: 'inline-block'
+                }}></span>
+                {logoImageId ? 'Загружено' : 'Не загружено'}
+              </div>
+            </div>
+            
             <ImageUpload
               currentImageId={logoImageId}
-              onImageUploaded={setLogoImageId}
-              onImageRemoved={() => setLogoImageId(null)}
+              onImageUploaded={(file: File) => handleImageUpload(file, 'logo')}
+              onImageRemoved={() => handleImageRemove('logo')}
               type="logo"
               recommendedSize="200x200px - 500x500px"
+              uploadToEntity={true}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Фоновое изображение</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '500' }}>Фоновое изображение</label>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '12px',
+                backgroundColor: bgImageId ? '#e8f5e9' : '#fff3e0',
+                color: bgImageId ? '#2e7d32' : '#e65100',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}>
+                <span style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  backgroundColor: bgImageId ? '#4caf50' : '#ff9800',
+                  display: 'inline-block'
+                }}></span>
+                {bgImageId ? 'Загружено' : 'Не загружено'}
+              </div>
+            </div>
+            
             <ImageUpload
               currentImageId={bgImageId}
-              onImageUploaded={setBgImageId}
-              onImageRemoved={() => setBgImageId(null)}
+              onImageUploaded={(file: File) => handleImageUpload(file, 'background')}
+              onImageRemoved={() => handleImageRemove('background')}
               type="background"
               recommendedSize="минимум 1920x1080px"
+              uploadToEntity={true}
             />
           </div>
         </div>

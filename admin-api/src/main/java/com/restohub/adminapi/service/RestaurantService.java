@@ -24,7 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,6 +41,7 @@ public class RestaurantService {
     private final UserRestaurantRepository userRestaurantRepository;
     private final RestaurantSubscriptionRepository restaurantSubscriptionRepository;
     private final UserRepository userRepository;
+    private final ImageService imageService;
     
     @Autowired
     public RestaurantService(
@@ -46,12 +49,14 @@ public class RestaurantService {
             ImageRepository imageRepository,
             UserRestaurantRepository userRestaurantRepository,
             RestaurantSubscriptionRepository restaurantSubscriptionRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ImageService imageService) {
         this.restaurantRepository = restaurantRepository;
         this.imageRepository = imageRepository;
         this.userRestaurantRepository = userRestaurantRepository;
         this.restaurantSubscriptionRepository = restaurantSubscriptionRepository;
         this.userRepository = userRepository;
+        this.imageService = imageService;
     }
     
     @Transactional
@@ -269,24 +274,38 @@ public class RestaurantService {
         }
         
         // Обновление изображений
+        // Обрабатываем logoImageId: если передан 0, удаляем изображение
+        // Если передан валидный ID, устанавливаем изображение
+        logger.debug("Updating restaurant {}: logoImageId={}, bgImageId={}", 
+                id, request.getLogoImageId(), request.getBgImageId());
+        
         if (request.getLogoImageId() != null) {
             if (request.getLogoImageId() == 0) {
+                logger.debug("Removing logo image from restaurant {}", id);
                 restaurant.setLogoImage(null);
             } else {
+                logger.debug("Setting logo image {} for restaurant {}", request.getLogoImageId(), id);
                 Image logoImage = imageRepository.findByIdAndIsActiveTrue(request.getLogoImageId())
                         .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
                 restaurant.setLogoImage(logoImage);
             }
+        } else {
+            logger.debug("logoImageId is null, skipping logo image update");
         }
         
+        // Аналогично для bgImageId
         if (request.getBgImageId() != null) {
             if (request.getBgImageId() == 0) {
+                logger.debug("Removing background image from restaurant {}", id);
                 restaurant.setBgImage(null);
             } else {
+                logger.debug("Setting background image {} for restaurant {}", request.getBgImageId(), id);
                 Image bgImage = imageRepository.findByIdAndIsActiveTrue(request.getBgImageId())
                         .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
                 restaurant.setBgImage(bgImage);
             }
+        } else {
+            logger.debug("bgImageId is null, skipping background image update");
         }
         
         // isActive может изменять только ADMIN
@@ -321,6 +340,80 @@ public class RestaurantService {
         
         // Каскадное мягкое удаление связанных сущностей
         // (будет выполнено через каскадные операции в Entity или отдельными запросами)
+    }
+    
+    @Transactional
+    public RestaurantResponse uploadRestaurantImage(Long restaurantId, MultipartFile file, String imageType) throws IOException {
+        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        // Валидация типа изображения
+        if (!"logo".equals(imageType) && !"background".equals(imageType)) {
+            throw new RuntimeException("INVALID_IMAGE_TYPE");
+        }
+        
+        // Загружаем изображение
+        ImageResponse imageResponse = imageService.uploadImage(file);
+        Image image = imageRepository.findByIdAndIsActiveTrue(imageResponse.getId())
+                .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
+        
+        // Удаляем старое изображение, если оно было
+        Image oldImage = null;
+        if ("logo".equals(imageType)) {
+            oldImage = restaurant.getLogoImage();
+            restaurant.setLogoImage(image);
+        } else if ("background".equals(imageType)) {
+            oldImage = restaurant.getBgImage();
+            restaurant.setBgImage(image);
+        }
+        
+        restaurant = restaurantRepository.save(restaurant);
+        
+        // Мягко удаляем старое изображение, если оно было и больше не используется
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete old image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(restaurant);
+    }
+    
+    @Transactional
+    public RestaurantResponse deleteRestaurantImage(Long restaurantId, String imageType) {
+        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        // Валидация типа изображения
+        if (!"logo".equals(imageType) && !"background".equals(imageType)) {
+            throw new RuntimeException("INVALID_IMAGE_TYPE");
+        }
+        
+        Image oldImage = null;
+        if ("logo".equals(imageType)) {
+            oldImage = restaurant.getLogoImage();
+            restaurant.setLogoImage(null);
+        } else if ("background".equals(imageType)) {
+            oldImage = restaurant.getBgImage();
+            restaurant.setBgImage(null);
+        }
+        
+        restaurant = restaurantRepository.save(restaurant);
+        
+        // Мягко удаляем изображение, если оно было
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(restaurant);
     }
     
     private RestaurantResponse toResponse(Restaurant restaurant) {

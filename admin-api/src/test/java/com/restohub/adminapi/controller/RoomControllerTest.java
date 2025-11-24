@@ -10,9 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -248,6 +251,120 @@ class RoomControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(roomService, times(1)).deleteRoom(1L, 999L);
+    }
+
+    // ========== POST /r/{id}/room/{roomId}/image - загрузка изображения помещения ==========
+
+    @Test
+    void testUploadRoomImage_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "room.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        RoomResponse response = new RoomResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setFloorId(1L);
+        response.setName("Зал 1");
+        response.setImageId(123L);
+        response.setIsActive(true);
+
+        doReturn(response).when(roomService).uploadRoomImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/room/1/image")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").value(123L));
+
+        verify(roomService, times(1)).uploadRoomImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadRoomImage_NotFound() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "room.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("ROOM_NOT_FOUND"))
+                .when(roomService).uploadRoomImage(eq(1L), eq(999L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/room/999/image")
+                        .file(file))
+                .andExpect(status().isNotFound());
+
+        verify(roomService, times(1)).uploadRoomImage(eq(1L), eq(999L), any(MultipartFile.class));
+    }
+
+    @Test
+    void testUploadRoomImage_IOException() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "room.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
+        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        doThrow(new IOException("IO_ERROR"))
+                .when(roomService).uploadRoomImage(eq(1L), eq(1L), any(MultipartFile.class));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/room/1/image")
+                        .file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.exceptionName").value("IMAGE_UPLOAD_ERROR"));
+
+        verify(roomService, times(1)).uploadRoomImage(eq(1L), eq(1L), any(MultipartFile.class));
+    }
+
+    // ========== DELETE /r/{id}/room/{roomId}/image - удаление изображения помещения ==========
+
+    @Test
+    void testDeleteRoomImage_Success() throws Exception {
+        // Arrange
+        RoomResponse response = new RoomResponse();
+        response.setId(1L);
+        response.setRestaurantId(1L);
+        response.setFloorId(1L);
+        response.setName("Зал 1");
+        response.setImageId(null);
+        response.setIsActive(true);
+
+        when(roomService.deleteRoomImage(1L, 1L)).thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/room/1/image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.imageId").isEmpty());
+
+        verify(roomService, times(1)).deleteRoomImage(1L, 1L);
+    }
+
+    @Test
+    void testDeleteRoomImage_NotFound() throws Exception {
+        // Arrange
+        when(roomService.deleteRoomImage(1L, 999L))
+                .thenThrow(new RuntimeException("ROOM_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/room/999/image"))
+                .andExpect(status().isNotFound());
+
+        verify(roomService, times(1)).deleteRoomImage(1L, 999L);
     }
 }
 

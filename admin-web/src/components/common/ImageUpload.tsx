@@ -1,12 +1,11 @@
 import { useState, useRef } from 'react'
 import type { DragEvent } from 'react'
 import ImagePreview from './ImagePreview'
-import { apiClient } from '../../services/apiClient'
 import { useToast } from '../../context/ToastContext'
 
 interface ImageUploadProps {
   currentImageId: number | null
-  onImageUploaded: (imageId: number) => void
+  onImageUploaded: (file: File) => void | Promise<void>
   onImageRemoved?: () => void
   accept?: string
   maxSize?: number
@@ -16,6 +15,9 @@ interface ImageUploadProps {
   showCrop?: boolean
   className?: string
   disabled?: boolean
+  uploadToEntity?: boolean
+  entityId?: number
+  entityType?: string
 }
 
 export default function ImageUpload({
@@ -24,10 +26,13 @@ export default function ImageUpload({
   onImageRemoved,
   accept = 'image/jpeg,image/png,image/webp',
   maxSize = 5 * 1024 * 1024, // 5MB
-  type,
+  type: _type,
   recommendedSize,
   className,
   disabled = false,
+  uploadToEntity: _uploadToEntity,
+  entityId: _entityId,
+  entityType: _entityType,
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -61,24 +66,8 @@ export default function ImageUpload({
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      if (type) {
-        formData.append('type', type)
-      }
-
-      const response = await apiClient.instance.post<{ imageId: number }>(
-        '/admin-api/image',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
-
-      onImageUploaded(response.data.imageId)
-      toast.success('Изображение успешно загружено')
+      // Загрузка к конкретной сущности, передаем File в callback
+      await onImageUploaded(file)
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Ошибка загрузки. Попробуйте позже'
       setError(errorMessage)

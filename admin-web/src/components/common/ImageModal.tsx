@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Modal from './Modal'
+import { apiClient } from '../../services/apiClient'
 
 interface ImageModalProps {
   imageId: number | null
@@ -12,16 +13,44 @@ export default function ImageModal({ imageId, isOpen, onClose, alt = 'Image' }: 
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const blobUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (isOpen && imageId) {
       setIsLoading(true)
       setError(null)
-      const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082'}/admin-api/image?id=${imageId}&isPreview=false`
-      setImageUrl(url)
-      setIsLoading(false)
+      
+      // Загружаем изображение через apiClient с авторизацией
+      apiClient.instance
+        .get(`/admin-api/image?id=${imageId}&isPreview=false`, {
+          responseType: 'blob',
+        })
+        .then((response) => {
+          const blob = response.data
+          // Очищаем предыдущий blob URL
+          if (blobUrlRef.current) {
+            URL.revokeObjectURL(blobUrlRef.current)
+          }
+          const url = URL.createObjectURL(blob)
+          blobUrlRef.current = url
+          setImageUrl(url)
+          setIsLoading(false)
+        })
+        .catch((err) => {
+          console.error('Failed to load image:', err)
+          setError('Не удалось загрузить изображение')
+          setIsLoading(false)
+        })
     } else {
       setImageUrl(null)
+    }
+
+    // Очищаем blob URL при размонтировании или изменении imageId
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+        blobUrlRef.current = null
+      }
     }
   }, [isOpen, imageId])
 

@@ -9,6 +9,8 @@ import com.restohub.adminapi.repository.ImageRepository;
 import com.restohub.adminapi.repository.MenuCategoryRepository;
 import com.restohub.adminapi.repository.MenuItemRepository;
 import com.restohub.adminapi.repository.RestaurantRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +19,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -27,21 +31,26 @@ import java.util.stream.Collectors;
 @Service
 public class MenuItemService {
     
+    private static final Logger logger = LoggerFactory.getLogger(MenuItemService.class);
+    
     private final MenuItemRepository menuItemRepository;
     private final RestaurantRepository restaurantRepository;
     private final MenuCategoryRepository menuCategoryRepository;
     private final ImageRepository imageRepository;
+    private final ImageService imageService;
     
     @Autowired
     public MenuItemService(
             MenuItemRepository menuItemRepository,
             RestaurantRepository restaurantRepository,
             MenuCategoryRepository menuCategoryRepository,
-            ImageRepository imageRepository) {
+            ImageRepository imageRepository,
+            ImageService imageService) {
         this.menuItemRepository = menuItemRepository;
         this.restaurantRepository = restaurantRepository;
         this.menuCategoryRepository = menuCategoryRepository;
         this.imageRepository = imageRepository;
+        this.imageService = imageService;
     }
     
     @Transactional
@@ -306,6 +315,68 @@ public class MenuItemService {
         int discount = discountPercent != null ? discountPercent : 0;
         BigDecimal multiplier = BigDecimal.ONE.subtract(BigDecimal.valueOf(discount).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
         return price.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    @Transactional
+    public MenuItemResponse uploadMenuItemImage(Long restaurantId, Long itemId, MultipartFile file) throws IOException {
+        MenuItem menuItem = menuItemRepository.findByIdAndIsActiveTrue(itemId)
+                .orElseThrow(() -> new RuntimeException("MENU_ITEM_NOT_FOUND"));
+        
+        // Проверка принадлежности к ресторану
+        if (!menuItem.getRestaurant().getId().equals(restaurantId)) {
+            throw new RuntimeException("MENU_ITEM_NOT_FOUND");
+        }
+        
+        // Загружаем изображение
+        ImageResponse imageResponse = imageService.uploadImage(file);
+        Image image = imageRepository.findByIdAndIsActiveTrue(imageResponse.getId())
+                .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
+        
+        // Удаляем старое изображение, если оно было
+        Image oldImage = menuItem.getImage();
+        menuItem.setImage(image);
+        
+        menuItem = menuItemRepository.save(menuItem);
+        
+        // Мягко удаляем старое изображение, если оно было и больше не используется
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete old image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(menuItem);
+    }
+    
+    @Transactional
+    public MenuItemResponse deleteMenuItemImage(Long restaurantId, Long itemId) {
+        MenuItem menuItem = menuItemRepository.findByIdAndIsActiveTrue(itemId)
+                .orElseThrow(() -> new RuntimeException("MENU_ITEM_NOT_FOUND"));
+        
+        // Проверка принадлежности к ресторану
+        if (!menuItem.getRestaurant().getId().equals(restaurantId)) {
+            throw new RuntimeException("MENU_ITEM_NOT_FOUND");
+        }
+        
+        Image oldImage = menuItem.getImage();
+        menuItem.setImage(null);
+        
+        menuItem = menuItemRepository.save(menuItem);
+        
+        // Мягко удаляем изображение, если оно было
+        if (oldImage != null) {
+            try {
+                imageService.deleteImage(oldImage.getId());
+            } catch (RuntimeException e) {
+                // Если изображение используется где-то еще, просто логируем
+                logger.debug("Could not delete image {}: {}", oldImage.getId(), e.getMessage());
+            }
+        }
+        
+        return toResponse(menuItem);
     }
     
     private Sort buildSort(String sortBy, String sortOrder) {

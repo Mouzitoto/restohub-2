@@ -10,21 +10,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.util.NestedServletException;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -420,6 +419,200 @@ class RestaurantControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(restaurantService, times(1)).deleteRestaurant(1L);
+    }
+
+    // ========== POST /r/:id/image - загрузка изображения ресторана ==========
+
+    @Test
+    void testUploadRestaurantImage_Logo_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "logo.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setLogoImageId(123L);
+        response.setBgImageId(null);
+        response.setIsActive(true);
+
+        doAnswer(invocation -> response).when(restaurantService).uploadRestaurantImage(eq(1L), any(MultipartFile.class), eq("logo"));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/image")
+                        .file(file)
+                        .param("type", "logo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.logoImageId").value(123L))
+                .andExpect(jsonPath("$.bgImageId").isEmpty());
+
+        verify(restaurantService, times(1)).uploadRestaurantImage(eq(1L), any(MultipartFile.class), eq("logo"));
+    }
+
+    @Test
+    void testUploadRestaurantImage_Background_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "background.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setLogoImageId(null);
+        response.setBgImageId(124L);
+        response.setIsActive(true);
+
+        doAnswer(invocation -> response).when(restaurantService).uploadRestaurantImage(eq(1L), any(MultipartFile.class), eq("background"));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/image")
+                        .file(file)
+                        .param("type", "background"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.logoImageId").isEmpty())
+                .andExpect(jsonPath("$.bgImageId").value(124L));
+
+        verify(restaurantService, times(1)).uploadRestaurantImage(eq(1L), any(MultipartFile.class), eq("background"));
+    }
+
+    @Test
+    void testUploadRestaurantImage_InvalidType() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "image.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("INVALID_IMAGE_TYPE"))
+                .when(restaurantService).uploadRestaurantImage(eq(1L), any(MultipartFile.class), eq("invalid"));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/1/image")
+                        .file(file)
+                        .param("type", "invalid"))
+                .andExpect(status().isBadRequest());
+
+        try {
+            verify(restaurantService, times(1)).uploadRestaurantImage(eq(1L), any(), eq("invalid"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testUploadRestaurantImage_RestaurantNotFound() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "logo.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "test image content".getBytes()
+        );
+
+        doThrow(new RuntimeException("RESTAURANT_NOT_FOUND"))
+                .when(restaurantService).uploadRestaurantImage(eq(999L), any(MultipartFile.class), eq("logo"));
+
+        // Act & Assert
+        mockMvc.perform(multipart("/r/999/image")
+                        .file(file)
+                        .param("type", "logo"))
+                .andExpect(status().isNotFound());
+
+        try {
+            verify(restaurantService, times(1)).uploadRestaurantImage(eq(999L), any(), eq("logo"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // ========== DELETE /r/:id/image - удаление изображения ресторана ==========
+
+    @Test
+    void testDeleteRestaurantImage_Logo_Success() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setLogoImageId(null);
+        response.setBgImageId(124L);
+        response.setIsActive(true);
+
+        when(restaurantService.deleteRestaurantImage(1L, "logo"))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/image")
+                        .param("type", "logo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.logoImageId").isEmpty())
+                .andExpect(jsonPath("$.bgImageId").value(124L));
+
+        verify(restaurantService, times(1)).deleteRestaurantImage(1L, "logo");
+    }
+
+    @Test
+    void testDeleteRestaurantImage_Background_Success() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setLogoImageId(123L);
+        response.setBgImageId(null);
+        response.setIsActive(true);
+
+        when(restaurantService.deleteRestaurantImage(1L, "background"))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/image")
+                        .param("type", "background"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.logoImageId").value(123L))
+                .andExpect(jsonPath("$.bgImageId").isEmpty());
+
+        verify(restaurantService, times(1)).deleteRestaurantImage(1L, "background");
+    }
+
+    @Test
+    void testDeleteRestaurantImage_InvalidType() throws Exception {
+        // Arrange
+        when(restaurantService.deleteRestaurantImage(1L, "invalid"))
+                .thenThrow(new RuntimeException("INVALID_IMAGE_TYPE"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/image")
+                        .param("type", "invalid"))
+                .andExpect(status().isBadRequest());
+
+        verify(restaurantService, times(1)).deleteRestaurantImage(1L, "invalid");
+    }
+
+    @Test
+    void testDeleteRestaurantImage_RestaurantNotFound() throws Exception {
+        // Arrange
+        when(restaurantService.deleteRestaurantImage(999L, "logo"))
+                .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/999/image")
+                        .param("type", "logo"))
+                .andExpect(status().isNotFound());
+
+        verify(restaurantService, times(1)).deleteRestaurantImage(999L, "logo");
     }
 }
 
