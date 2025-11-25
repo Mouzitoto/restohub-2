@@ -1,6 +1,5 @@
 package com.restohub.adminapi.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.ClientService;
 import org.junit.jupiter.api.Test;
@@ -27,9 +26,6 @@ class ClientControllerTest extends BaseControllerTest {
 
     @MockBean
     private ClientService clientService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     // ========== GET /r/{id}/client - список клиентов ==========
 
