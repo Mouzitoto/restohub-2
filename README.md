@@ -1,145 +1,54 @@
 # Resto-Hub
 
-Restaurant management system with client and admin interfaces.
+Система управления ресторанами с клиентским и административным интерфейсами.
 
-## Prerequisites
+## Локальный запуск
 
-- Docker Desktop (BuildKit is enabled by default in Docker Desktop)
-- Git
+Для запуска проекта на локальной машине см. [local-deployment/README.md](local-deployment/README.md)
 
-## Quick Start
+## Сервисы
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd resto-hub
-```
+- **PostgreSQL** - База данных (порт 5432)
+- **admin-api** - Админ API (порт 8082)
+- **client-api** - Клиентский API (порт 8081)
+- **admin-web** - Админ веб-интерфейс
+- **client-web** - Клиентский веб-интерфейс
+- **nginx** - Обратный прокси (порт 80)
 
-2. **Настройте локальные домены** (один раз):
+## Переменные окружения
 
-**Windows:**
-```powershell
-# Запустите PowerShell от имени администратора
-.\setup-hosts.ps1
-```
-
-**Linux/macOS:**
-```bash
-sudo ./setup-hosts.sh
-```
-
-**Ручная настройка:**
-Отредактируйте файл hosts и добавьте:
-```
-127.0.0.1 restohub.local
-127.0.0.1 partner.restohub.local
-127.0.0.1 api.restohub.local
-```
-
-- Windows: `C:\Windows\System32\drivers\etc\hosts`
-- Linux/macOS: `/etc/hosts`
-
-3. Start all services:
-
-**Option 1: Start all services at once (logs from all containers):**
-```bash
-docker compose up --build
-```
-
-**Option 2: Start services sequentially (see logs one by one):**
-```powershell
-.\start-containers.ps1
-```
-
-This script will start containers one by one, showing logs for each container sequentially. Press Ctrl+C to move to the next container.
-
-4. **Откройте в браузере:**
-- http://restohub.local - Клиентское приложение
-- http://partner.restohub.local - Админ-панель
-- http://api.restohub.local - API endpoints
-
-That's it! All services will be built and started automatically.
-
-**Note:** On the first run, Docker will:
-- Download base images (Maven, Node.js, PostgreSQL, nginx, etc.)
-- Download all Maven and npm dependencies
-- Build all projects (Spring Boot apps and React apps)
-- Create and start all containers
-
-This may take 5-10 minutes depending on your internet connection. Subsequent builds will be much faster thanks to Docker layer caching.
-
-## Services
-
-- **PostgreSQL** - Database (port 5432)
-- **admin-api** - Admin API (port 8082)
-- **client-api** - Client API (port 8081)
-- **admin-web** - Admin web interface
-- **client-web** - Client web interface
-- **nginx** - Reverse proxy (port 80)
-
-## Local Domains
-
-Проект настроен для работы через локальные домены без указания портов:
-
-- `restohub.local` → Client web interface
-- `partner.restohub.local` → Admin web interface
-- `api.restohub.local/client-api` → Client API
-- `api.restohub.local/admin-api` → Admin API
-
-Все домены работают только на вашем компьютере и не доступны извне.
-
-## Building
-
-All projects are built automatically inside Docker containers. No need to run Maven or npm locally.
-
-The build process:
-- Downloads dependencies (cached between builds)
-- Compiles source code
-- Creates production artifacts
-- Packages into Docker images
-
-## Development
-
-For local development, you can still build projects locally:
-
-```powershell
-.\build.ps1
-```
-
-Then run services individually or use Docker Compose.
-
-## Environment Variables
-
-All domain URLs are configurable through environment variables. You can override them by creating a `.env` file in the project root or by setting them in your environment.
+Все доменные URL настраиваются через переменные окружения. Вы можете переопределить их, создав файл `.env` в корне проекта или установив их в вашем окружении.
 
 ### Frontend Build Variables (Vite)
-These are embedded during build time:
-- `VITE_API_BASE_URL` - API base URL (default: `http://api.restohub.local`)
-- `VITE_PARTNER_DOMAIN` - Partner/admin domain (default: `http://partner.restohub.local`)
+Эти переменные встраиваются во время сборки:
+- `VITE_API_BASE_URL` - Базовый URL API
+- `VITE_PARTNER_DOMAIN` - Домен партнера/админа
 
 ### Backend Runtime Variables
-These can be changed at runtime:
-- `ADMIN_WEB_URL` - Admin web interface URL for CORS (default: `http://partner.restohub.local`)
-- `CLIENT_WEB_URL` - Client web interface URL for CORS (default: `http://restohub.local`)
+Эти переменные можно изменить во время выполнения:
+- `ADMIN_WEB_URL` - URL админ веб-интерфейса для CORS
+- `CLIENT_WEB_URL` - URL клиентского веб-интерфейса для CORS
 
 ### Nginx Domain Variables
-These configure nginx server names:
-- `CLIENT_DOMAIN` - Client domain name (default: `restohub.local`)
-- `PARTNER_DOMAIN` - Partner/admin domain name (default: `partner.restohub.local`)
-- `API_DOMAIN` - API domain name (default: `api.restohub.local`)
+Эти переменные настраивают имена серверов в nginx:
+- `CLIENT_DOMAIN` - Имя клиентского домена
+- `PARTNER_DOMAIN` - Имя домена партнера/админа
+- `API_DOMAIN` - Имя домена API
 
-## Production Deployment
+**Примечание:** Значения по умолчанию для локальной разработки настроены в `local-deployment/README.md`. Для продакшена см. раздел "Развертывание в продакшене" ниже.
 
-### Step 1: Create .env File
+## Развертывание в продакшене
 
-Create a `.env` file in the project root directory with your production domain values:
+### Шаг 1: Создание файла .env
+
+Создайте файл `.env` в корневой директории проекта со значениями доменов для продакшена:
 
 ```env
-# Frontend build-time variables (embedded in the build)
+# Frontend build-time variables (встраиваются в сборку)
 VITE_API_BASE_URL=https://api.restohub.kz
 VITE_PARTNER_DOMAIN=https://partner.restohub.kz
 
-# Backend runtime variables (for CORS configuration)
+# Backend runtime variables (для настройки CORS)
 ADMIN_WEB_URL=https://partner.restohub.kz
 CLIENT_WEB_URL=https://restohub.kz
 
@@ -149,114 +58,111 @@ PARTNER_DOMAIN=partner.restohub.kz
 API_DOMAIN=api.restohub.kz
 ```
 
-**Important notes:**
-- Use `https://` for frontend URLs (VITE_* variables) - they are embedded in the build
-- Use `https://` for backend CORS URLs (ADMIN_WEB_URL, CLIENT_WEB_URL)
-- Use only domain names (without protocol) for nginx variables (CLIENT_DOMAIN, PARTNER_DOMAIN, API_DOMAIN)
+**Важные примечания:**
+- Используйте `https://` для frontend URL (переменные VITE_*) - они встраиваются в сборку
+- Используйте `https://` для backend CORS URL (ADMIN_WEB_URL, CLIENT_WEB_URL)
+- Используйте только имена доменов (без протокола) для nginx переменных (CLIENT_DOMAIN, PARTNER_DOMAIN, API_DOMAIN)
 
-### Step 2: Configure DNS
+### Шаг 2: Настройка DNS
 
-Make sure your DNS records point to your server:
+Убедитесь, что ваши DNS записи указывают на ваш сервер:
 
-- `restohub.kz` → Your server IP
-- `partner.restohub.kz` → Your server IP
-- `api.restohub.kz` → Your server IP
+- `restohub.kz` → IP вашего сервера
+- `partner.restohub.kz` → IP вашего сервера
+- `api.restohub.kz` → IP вашего сервера
 
-### Step 3: Configure SSL/TLS
+### Шаг 3: Настройка SSL/TLS
 
-Before deploying, ensure you have SSL certificates for your domains. You can use:
-- Let's Encrypt (free, recommended)
-- Commercial SSL certificates
+Перед развертыванием убедитесь, что у вас есть SSL сертификаты для ваших доменов. Вы можете использовать:
+- Let's Encrypt (бесплатно, рекомендуется)
+- Коммерческие SSL сертификаты
 
-**For Let's Encrypt with nginx:**
-1. Install certbot on your server
-2. Generate certificates: `certbot certonly --nginx -d restohub.kz -d partner.restohub.kz -d api.restohub.kz`
-3. Update nginx configuration to use SSL (you may need to modify nginx.conf.template or add SSL configuration)
+**Для Let's Encrypt с nginx:**
+1. Установите certbot на ваш сервер
+2. Сгенерируйте сертификаты: `certbot certonly --nginx -d restohub.kz -d partner.restohub.kz -d api.restohub.kz`
+3. Обновите конфигурацию nginx для использования SSL (возможно, потребуется изменить nginx.conf.template или добавить SSL конфигурацию)
 
-### Step 4: Update docker-compose.yml for Production
+### Шаг 4: Обновление docker-compose.yml для продакшена
 
-You may need to adjust port mappings and add SSL configuration. For example, if you're using a reverse proxy (like Cloudflare or another nginx instance) in front of Docker, you might want to:
+Возможно, потребуется настроить маппинг портов и добавить SSL конфигурацию. Например, если вы используете обратный прокси (например, Cloudflare или другой экземпляр nginx) перед Docker, вы можете:
 
-1. Remove port 80 mapping from nginx service (if using external reverse proxy)
-2. Add SSL port mapping: `443:443`
-3. Update nginx configuration to handle SSL termination
+1. Удалить маппинг порта 80 из сервиса nginx (если используется внешний обратный прокси)
+2. Добавить маппинг SSL порта: `443:443`
+3. Обновить конфигурацию nginx для обработки SSL termination
 
-### Step 5: Build and Deploy
+### Шаг 5: Сборка и развертывание
 
-1. **Copy your project to the production server:**
+1. **Скопируйте ваш проект на продакшен сервер:**
    ```bash
    scp -r resto-hub user@your-server:/path/to/deployment/
    ```
 
-2. **SSH into your server:**
+2. **Подключитесь к серверу по SSH:**
    ```bash
    ssh user@your-server
    cd /path/to/deployment/resto-hub
    ```
 
-3. **Create .env file with production values** (see Step 1)
+3. **Создайте файл .env со значениями для продакшена** (см. Шаг 1)
 
-4. **Build and start services:**
+4. **Соберите и запустите сервисы:**
    ```bash
    docker compose up -d --build
    ```
 
-5. **Verify services are running:**
+5. **Проверьте, что сервисы запущены:**
    ```bash
    docker compose ps
    docker compose logs
    ```
 
-### Step 6: Verify Deployment
+### Шаг 6: Проверка развертывания
 
-Check that all services are accessible:
+Проверьте, что все сервисы доступны:
 
-- https://restohub.kz - Client web interface
-- https://partner.restohub.kz - Admin web interface
-- https://api.restohub.kz/client-api - Client API
-- https://api.restohub.kz/admin-api - Admin API
+- https://restohub.kz - Клиентский веб-интерфейс
+- https://partner.restohub.kz - Админ веб-интерфейс
+- https://api.restohub.kz/client-api - Клиентский API
+- https://api.restohub.kz/admin-api - Админ API
 
-### Troubleshooting
+### Решение проблем
 
-**If services don't start:**
-- Check logs: `docker compose logs [service-name]`
-- Verify .env file is in the project root
-- Ensure all required ports are available
+**Если сервисы не запускаются:**
+- Проверьте логи: `docker compose logs [service-name]`
+- Убедитесь, что файл .env находится в корне проекта
+- Убедитесь, что все необходимые порты доступны
 
-**If domains don't resolve:**
-- Verify DNS records are correct
-- Check firewall settings
-- Ensure SSL certificates are properly configured
+**Если домены не резолвятся:**
+- Проверьте, что DNS записи корректны
+- Проверьте настройки файрвола
+- Убедитесь, что SSL сертификаты правильно настроены
 
-**If CORS errors occur:**
-- Verify ADMIN_WEB_URL and CLIENT_WEB_URL match your actual domains
-- Check that URLs use `https://` protocol
-- Restart backend services after changing CORS variables
+**Если возникают ошибки CORS:**
+- Проверьте, что ADMIN_WEB_URL и CLIENT_WEB_URL соответствуют вашим фактическим доменам
+- Проверьте, что URL используют протокол `https://`
+- Перезапустите backend сервисы после изменения переменных CORS
 
-**If frontend shows wrong API URLs:**
-- Rebuild frontend containers: `docker compose build client-web admin-web`
-- Restart services: `docker compose up -d`
+**Если frontend показывает неправильные API URL:**
+- Пересоберите frontend контейнеры: `docker compose build client-web admin-web`
+- Перезапустите сервисы: `docker compose up -d`
 
-### Security Checklist
+### Чеклист безопасности
 
-Before going live:
+Перед запуском в продакшене:
 
-- [ ] Change default database passwords
-- [ ] Use strong JWT secrets
-- [ ] Enable HTTPS/SSL
-- [ ] Configure firewall rules
-- [ ] Set up regular backups
-- [ ] Configure log rotation
-- [ ] Review and restrict exposed ports
-- [ ] Set up monitoring and alerts
+- [ ] Измените пароли базы данных по умолчанию
+- [ ] Используйте надежные JWT секреты
+- [ ] Включите HTTPS/SSL
+- [ ] Настройте правила файрвола
+- [ ] Настройте регулярные резервные копии
+- [ ] Настройте ротацию логов
+- [ ] Проверьте и ограничьте открытые порты
+- [ ] Настройте мониторинг и алерты
 
-## Notes
+## Примечания
 
-- First build may take longer as dependencies are downloaded
-- Subsequent builds use cached dependencies for faster builds
-- Database migrations are applied automatically by admin-api on startup
-- All services communicate through Docker network
-- Frontend applications use environment variables for all domain URLs
-- CORS is configured to allow requests from configured domains
-- If port 80 is already in use, you may need to stop other services (e.g., IIS on Windows)
+- Миграции базы данных применяются автоматически при запуске admin-api
+- Все сервисы общаются через Docker network
+- Frontend приложения используют переменные окружения для всех доменных URL
+- CORS настроен для разрешения запросов с настроенных доменов
 

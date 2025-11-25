@@ -1,0 +1,9 @@
+curl --location 'http://localhost:8082/admin-api/subscriptions/activate' \
+--header 'Content-Type: application/json' \
+--header 'X-API-Key: change-me-in-production' \
+--data '{
+    "paymentReference": "SUB-2025-483386",
+    "paymentDate": "2025-11-25T12:00:00",
+    "externalTransactionId": "1с-001",
+    "amount": 10000.00
+}'
