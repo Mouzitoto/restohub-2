@@ -3,16 +3,17 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.TableService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,30 +26,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class TableControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class TableControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private TableService tableService;
 
-    @InjectMocks
-    private TableController tableController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(tableController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /r/{id}/table - создание стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreateTable_Success() throws Exception {
         // Arrange
         CreateTableRequest request = new CreateTableRequest();
@@ -66,7 +59,7 @@ class TableControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(tableService.createTable(eq(1L), any(CreateTableRequest.class))).thenReturn(response);
+        doReturn(response).when(tableService).createTable(eq(1L), any(CreateTableRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/r/1/table")
@@ -84,6 +77,7 @@ class TableControllerTest {
     // ========== GET /r/{id}/table - список столов ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTables_Success() throws Exception {
         // Arrange
         TableListItemResponse item1 = new TableListItemResponse();
@@ -117,6 +111,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTables_WithFilters() throws Exception {
         // Arrange
         List<TableListItemResponse> items = Arrays.asList();
@@ -144,6 +139,7 @@ class TableControllerTest {
     // ========== GET /r/{id}/table/{tableId} - детали стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTable_Success() throws Exception {
         // Arrange
         TableResponse response = new TableResponse();
@@ -156,7 +152,7 @@ class TableControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(tableService.getTable(1L, 1L)).thenReturn(response);
+        doReturn(response).when(tableService).getTable(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/table/1"))
@@ -170,6 +166,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTable_NotFound() throws Exception {
         // Arrange
         when(tableService.getTable(1L, 999L))
@@ -185,6 +182,7 @@ class TableControllerTest {
     // ========== PUT /r/{id}/table/{tableId} - обновление стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateTable_Success() throws Exception {
         // Arrange
         UpdateTableRequest request = new UpdateTableRequest();
@@ -216,6 +214,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateTable_NotFound() throws Exception {
         // Arrange
         UpdateTableRequest request = new UpdateTableRequest();
@@ -236,6 +235,7 @@ class TableControllerTest {
     // ========== DELETE /r/{id}/table/{tableId} - удаление стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteTable_Success() throws Exception {
         // Arrange
         doNothing().when(tableService).deleteTable(1L, 1L);
@@ -248,6 +248,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteTable_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("TABLE_NOT_FOUND"))
@@ -263,12 +264,13 @@ class TableControllerTest {
     // ========== GET /r/{id}/table/map - карта столов ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTableMap_Success() throws Exception {
         // Arrange
         TableMapResponse response = new TableMapResponse();
         response.setFloors(java.util.Collections.emptyList());
 
-        when(tableService.getTableMap(eq(1L), isNull(), isNull())).thenReturn(response);
+        doReturn(response).when(tableService).getTableMap(eq(1L), isNull(), isNull());
 
         // Act & Assert
         mockMvc.perform(get("/r/1/table/map"))
@@ -279,12 +281,13 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetTableMap_WithFilters() throws Exception {
         // Arrange
         TableMapResponse response = new TableMapResponse();
         response.setFloors(java.util.Collections.emptyList());
 
-        when(tableService.getTableMap(eq(1L), eq(1L), eq(1L))).thenReturn(response);
+        doReturn(response).when(tableService).getTableMap(eq(1L), eq(1L), eq(1L));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/table/map")
@@ -299,6 +302,7 @@ class TableControllerTest {
     // ========== POST /r/{id}/table/{tableId}/image - загрузка изображения стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadTableImage_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -330,6 +334,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadTableImage_NotFound() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -351,6 +356,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadTableImage_IOException() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -361,7 +367,7 @@ class TableControllerTest {
         );
 
         // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
-        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        // GlobalExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
         doThrow(new IOException("IO_ERROR"))
                 .when(tableService).uploadTableImage(eq(1L), eq(1L), any(MultipartFile.class));
 
@@ -377,6 +383,7 @@ class TableControllerTest {
     // ========== DELETE /r/{id}/table/{tableId}/image - удаление изображения стола ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteTableImage_Success() throws Exception {
         // Arrange
         TableResponse response = new TableResponse();
@@ -388,7 +395,7 @@ class TableControllerTest {
         response.setImageId(null);
         response.setIsActive(true);
 
-        when(tableService.deleteTableImage(1L, 1L)).thenReturn(response);
+        doReturn(response).when(tableService).deleteTableImage(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(delete("/r/1/table/1/image"))
@@ -400,6 +407,7 @@ class TableControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteTableImage_NotFound() throws Exception {
         // Arrange
         when(tableService.deleteTableImage(1L, 999L))

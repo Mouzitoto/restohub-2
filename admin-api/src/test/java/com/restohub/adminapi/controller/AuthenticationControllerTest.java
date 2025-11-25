@@ -5,56 +5,41 @@ import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.AuthenticationService;
 import com.restohub.adminapi.service.PasswordResetService;
 import com.restohub.adminapi.util.JwtTokenProvider;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Тесты для AuthenticationController.
- * 
- * ВАЖНО: Эти тесты используют standaloneSetup, поэтому Spring Security НЕ загружается.
- * Для полного тестирования SecurityConfig нужно использовать @WebMvcTest или @SpringBootTest.
- * 
- * Для проверки SecurityConfig создайте интеграционные тесты с @SpringBootTest.
- */
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AuthenticationControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private AuthenticationService authenticationService;
 
-    @Mock
+    @MockBean
     private PasswordResetService passwordResetService;
 
-    @Mock
+    @MockBean
     private JwtTokenProvider jwtTokenProvider;
 
-    @InjectMocks
-    private AuthenticationController authenticationController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(authenticationController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /auth/login ==========
 
@@ -67,7 +52,7 @@ class AuthenticationControllerTest {
 
         LoginResponse response = new LoginResponse("access-token", "refresh-token", "MANAGER", 300L);
 
-        when(authenticationService.login(anyString(), anyString())).thenReturn(response);
+        doReturn(response).when(authenticationService).login(anyString(), anyString());
 
         // Act & Assert
         mockMvc.perform(post("/auth/login")
@@ -93,8 +78,6 @@ class AuthenticationControllerTest {
                 .thenThrow(new RuntimeException("INVALID_CREDENTIALS"));
 
         // Act & Assert
-        // В standalone режиме исключение обрабатывается TestExceptionHandler
-        // INVALID_CREDENTIALS должен возвращать 401 (UNAUTHORIZED)
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -135,7 +118,7 @@ class AuthenticationControllerTest {
 
         RefreshTokenResponse response = new RefreshTokenResponse("new-access-token", "new-refresh-token", 300L);
 
-        when(authenticationService.refresh(anyString())).thenReturn(response);
+        doReturn(response).when(authenticationService).refresh(anyString());
 
         // Act & Assert
         mockMvc.perform(post("/auth/refresh")
@@ -155,8 +138,7 @@ class AuthenticationControllerTest {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("expired-refresh-token");
 
-        when(authenticationService.refresh(anyString()))
-                .thenThrow(new RuntimeException("REFRESH_TOKEN_EXPIRED"));
+        doThrow(new RuntimeException("REFRESH_TOKEN_EXPIRED")).when(authenticationService).refresh(anyString());
 
         // Act & Assert
         mockMvc.perform(post("/auth/refresh")
@@ -175,8 +157,7 @@ class AuthenticationControllerTest {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("invalid-refresh-token");
 
-        when(authenticationService.refresh(anyString()))
-                .thenThrow(new RuntimeException("INVALID_REFRESH_TOKEN"));
+        doThrow(new RuntimeException("INVALID_REFRESH_TOKEN")).when(authenticationService).refresh(anyString());
 
         // Act & Assert
         mockMvc.perform(post("/auth/refresh")
@@ -231,4 +212,3 @@ class AuthenticationControllerTest {
         verify(passwordResetService, times(1)).resetPassword("test@example.com", "123456", "newPassword123");
     }
 }
-

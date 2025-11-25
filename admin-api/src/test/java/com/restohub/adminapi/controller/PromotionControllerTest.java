@@ -1,19 +1,18 @@
 package com.restohub.adminapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.restohub.adminapi.dto.*;
+import com.restohub.adminapi.entity.PromotionType;
+import com.restohub.adminapi.repository.PromotionTypeRepository;
 import com.restohub.adminapi.service.PromotionService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -21,50 +20,32 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class PromotionControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class PromotionControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private PromotionService promotionService;
 
-    @InjectMocks
-    private PromotionController promotionController;
+    @MockBean
+    private PromotionTypeRepository promotionTypeRepository;
 
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Создаем фиктивный валидатор, который ничего не делает
-        org.springframework.validation.Validator noOpValidator = new org.springframework.validation.Validator() {
-            @Override
-            public boolean supports(Class<?> clazz) {
-                return false; // Не поддерживаем никакие классы, чтобы валидация не вызывалась
-            }
-            
-            @Override
-            public void validate(Object target, org.springframework.validation.Errors errors) {
-                // Ничего не делаем - валидация отключена
-            }
-        };
-        
-        mockMvc = MockMvcBuilders.standaloneSetup(promotionController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(noOpValidator)
-                .build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-    }
 
     // ========== POST /r/{id}/promotion - создание акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreatePromotion_Success() throws Exception {
         // Arrange
         CreatePromotionRequest request = new CreatePromotionRequest();
@@ -90,7 +71,15 @@ class PromotionControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(promotionService.createPromotion(eq(1L), any(CreatePromotionRequest.class))).thenReturn(response);
+        // Настраиваем мок репозитория для валидатора ValidPromotionTypeId
+        PromotionType promotionType = new PromotionType();
+        promotionType.setId(1L);
+        promotionType.setCode("DISCOUNT");
+        promotionType.setName("Скидка");
+        promotionType.setIsActive(true);
+        doReturn(Optional.of(promotionType)).when(promotionTypeRepository).findByIdAndIsActiveTrue(1L);
+
+        doReturn(response).when(promotionService).createPromotion(eq(1L), any(CreatePromotionRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/r/1/promotion")
@@ -107,6 +96,7 @@ class PromotionControllerTest {
     // ========== GET /r/{id}/promotion - список акций ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPromotions_Success() throws Exception {
         // Arrange
         PromotionListItemResponse item1 = new PromotionListItemResponse();
@@ -145,6 +135,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPromotions_WithFilters() throws Exception {
         // Arrange
         List<PromotionListItemResponse> items = Arrays.asList();
@@ -177,6 +168,7 @@ class PromotionControllerTest {
     // ========== GET /r/{id}/promotion/{promotionId} - детали акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPromotion_Success() throws Exception {
         // Arrange
         PromotionResponse response = new PromotionResponse();
@@ -195,7 +187,7 @@ class PromotionControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(promotionService.getPromotion(1L, 1L)).thenReturn(response);
+        doReturn(response).when(promotionService).getPromotion(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/promotion/1"))
@@ -208,6 +200,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPromotion_NotFound() throws Exception {
         // Arrange
         when(promotionService.getPromotion(1L, 999L))
@@ -223,6 +216,7 @@ class PromotionControllerTest {
     // ========== PUT /r/{id}/promotion/{promotionId} - обновление акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdatePromotion_Success() throws Exception {
         // Arrange
         UpdatePromotionRequest request = new UpdatePromotionRequest();
@@ -252,6 +246,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdatePromotion_NotFound() throws Exception {
         // Arrange
         UpdatePromotionRequest request = new UpdatePromotionRequest();
@@ -272,6 +267,7 @@ class PromotionControllerTest {
     // ========== DELETE /r/{id}/promotion/{promotionId} - удаление акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeletePromotion_Success() throws Exception {
         // Arrange
         doNothing().when(promotionService).deletePromotion(1L, 1L);
@@ -284,6 +280,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeletePromotion_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("PROMOTION_NOT_FOUND"))
@@ -299,6 +296,7 @@ class PromotionControllerTest {
     // ========== POST /r/{id}/promotion/{promotionId}/image - загрузка изображения акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadPromotionImage_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -333,6 +331,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadPromotionImage_NotFound() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -354,6 +353,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadPromotionImage_IOException() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -364,7 +364,7 @@ class PromotionControllerTest {
         );
 
         // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
-        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        // GlobalExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
         doThrow(new IOException("IO_ERROR"))
                 .when(promotionService).uploadPromotionImage(eq(1L), eq(1L), any(MultipartFile.class));
 
@@ -380,6 +380,7 @@ class PromotionControllerTest {
     // ========== DELETE /r/{id}/promotion/{promotionId}/image - удаление изображения акции ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeletePromotionImage_Success() throws Exception {
         // Arrange
         PromotionResponse response = new PromotionResponse();
@@ -394,7 +395,7 @@ class PromotionControllerTest {
         response.setImageId(null);
         response.setIsActive(true);
 
-        when(promotionService.deletePromotionImage(1L, 1L)).thenReturn(response);
+        doReturn(response).when(promotionService).deletePromotionImage(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(delete("/r/1/promotion/1/image"))
@@ -406,6 +407,7 @@ class PromotionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeletePromotionImage_NotFound() throws Exception {
         // Arrange
         when(promotionService.deletePromotionImage(1L, 999L))

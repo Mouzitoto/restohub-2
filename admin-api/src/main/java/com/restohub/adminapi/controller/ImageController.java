@@ -3,6 +3,7 @@ package com.restohub.adminapi.controller;
 import com.restohub.adminapi.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,12 @@ public class ImageController {
     
     @GetMapping
     public ResponseEntity<byte[]> getImage(
-            @RequestParam("id") Long id,
+            @RequestParam(value = "id", required = false) Long id,
             @RequestParam(value = "isPreview", defaultValue = "false") boolean isPreview) {
+        
+        if (id == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
         
         byte[] imageData = imageService.getImage(id, isPreview);
         String mimeType = imageService.getImageMimeType(id);

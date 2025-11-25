@@ -2,14 +2,12 @@ package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.PreOrderService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,28 +21,19 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class PreOrderControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class PreOrderControllerTest extends BaseControllerTest {
 
-    @Mock
-    private PreOrderService preOrderService;
-
-    @InjectMocks
-    private PreOrderController preOrderController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(preOrderController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-    }
+    @MockBean
+    private PreOrderService preOrderService;
 
     // ========== GET /r/{id}/pre-order - список предзаказов ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPreOrders_Success() throws Exception {
         // Arrange
         PreOrderListItemResponse item1 = new PreOrderListItemResponse();
@@ -69,8 +58,7 @@ class PreOrderControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 50, 0, false);
         PaginationResponse<List<PreOrderListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(preOrderService.getPreOrders(eq(1L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("date"), eq("desc")))
-                .thenReturn(response);
+        doReturn(response).when(preOrderService).getPreOrders(eq(1L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("date"), eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/pre-order")
@@ -89,15 +77,15 @@ class PreOrderControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPreOrders_WithFilters() throws Exception {
         // Arrange
         List<PreOrderListItemResponse> items = Arrays.asList();
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(0L, 50, 0, false);
         PaginationResponse<List<PreOrderListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(preOrderService.getPreOrders(eq(1L), eq(50), eq(0), eq("APPROVED"), 
-                eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.of(2024, 1, 31)), eq(1L), eq("+79991234567"), eq("date"), eq("desc")))
-                .thenReturn(response);
+        doReturn(response).when(preOrderService).getPreOrders(eq(1L), eq(50), eq(0), eq("APPROVED"), 
+                eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.of(2024, 1, 31)), eq(1L), eq("+79991234567"), eq("date"), eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/pre-order")
@@ -117,21 +105,22 @@ class PreOrderControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPreOrders_RestaurantNotFound() throws Exception {
         // Arrange
-        when(preOrderService.getPreOrders(eq(999L), anyInt(), anyInt(), isNull(), isNull(), isNull(), isNull(), isNull(), anyString(), anyString()))
-                .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
+        doThrow(new RuntimeException("RESTAURANT_NOT_FOUND")).when(preOrderService).getPreOrders(eq(999L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("date"), eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/999/pre-order"))
                 .andExpect(status().isNotFound());
 
-        verify(preOrderService, times(1)).getPreOrders(eq(999L), anyInt(), anyInt(), isNull(), isNull(), isNull(), isNull(), isNull(), anyString(), anyString());
+        verify(preOrderService, times(1)).getPreOrders(eq(999L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("date"), eq("desc"));
     }
 
     // ========== GET /r/{id}/pre-order/{preOrderId} - детали предзаказа ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPreOrder_Success() throws Exception {
         // Arrange
         PreOrderResponse response = new PreOrderResponse();
@@ -177,7 +166,7 @@ class PreOrderControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(preOrderService.getPreOrder(1L, 1L)).thenReturn(response);
+        doReturn(response).when(preOrderService).getPreOrder(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/pre-order/1"))
@@ -193,10 +182,10 @@ class PreOrderControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetPreOrder_NotFound() throws Exception {
         // Arrange
-        when(preOrderService.getPreOrder(1L, 999L))
-                .thenThrow(new RuntimeException("PRE_ORDER_NOT_FOUND"));
+        doThrow(new RuntimeException("PRE_ORDER_NOT_FOUND")).when(preOrderService).getPreOrder(1L, 999L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/pre-order/999"))
@@ -208,6 +197,7 @@ class PreOrderControllerTest {
     // ========== PUT /r/{id}/pre-order/{preOrderId}/cancel - отмена предзаказа ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelPreOrder_Success() throws Exception {
         // Arrange
         PreOrderResponse response = new PreOrderResponse();
@@ -221,7 +211,7 @@ class PreOrderControllerTest {
         response.setStatus(statusInfo);
         response.setUpdatedAt(Instant.now());
 
-        when(preOrderService.cancelPreOrder(1L, 1L)).thenReturn(response);
+        doReturn(response).when(preOrderService).cancelPreOrder(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/pre-order/1/cancel"))
@@ -233,10 +223,10 @@ class PreOrderControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelPreOrder_NotFound() throws Exception {
         // Arrange
-        when(preOrderService.cancelPreOrder(1L, 999L))
-                .thenThrow(new RuntimeException("PRE_ORDER_NOT_FOUND"));
+        doThrow(new RuntimeException("PRE_ORDER_NOT_FOUND")).when(preOrderService).cancelPreOrder(1L, 999L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/pre-order/999/cancel"))
@@ -246,10 +236,10 @@ class PreOrderControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelPreOrder_AlreadyCancelled() throws Exception {
         // Arrange
-        when(preOrderService.cancelPreOrder(1L, 1L))
-                .thenThrow(new RuntimeException("PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED"));
+        doThrow(new RuntimeException("PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED")).when(preOrderService).cancelPreOrder(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/pre-order/1/cancel"))

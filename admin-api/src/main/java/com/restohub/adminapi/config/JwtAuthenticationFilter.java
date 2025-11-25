@@ -64,47 +64,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         
+        // Если аутентификация уже установлена (например, через @WithMockUser в тестах), пропускаем
+        if (SecurityContextHolder.getContext().getAuthentication() != null 
+                && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
+            logger.debug("Authentication already exists, skipping JWT filter for: {}", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         String authHeader = request.getHeader(AUTHORIZATION_HEADER);
         
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length());
-            
-            try {
-                // Проверяем, истек ли токен
-                if (jwtTokenProvider.isTokenExpired(token)) {
-                    logger.debug("Token expired for request: {}", request.getRequestURI());
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    String errorJson = "{\"exceptionName\":\"TOKEN_EXPIRED\",\"message\":\"Токен истек\",\"timestamp\":\"" + 
-                            java.time.Instant.now().toString() + "\",\"traceId\":\"" + 
-                            org.slf4j.MDC.get("traceId") + "\"}";
-                    response.getWriter().write(errorJson);
-                    return;
-                }
-                
-                if (jwtTokenProvider.validateToken(token)) {
-                    String email = jwtTokenProvider.getEmailFromToken(token);
-                    String role = jwtTokenProvider.getRoleFromToken(token);
-                    
-                    if (role == null || role.isEmpty()) {
-                        logger.warn("Role is null or empty for user: {}", email);
-                        SecurityContextHolder.clearContext();
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
-                    
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            email,
-                            token,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
-                    );
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    logger.debug("Authenticated user: {} with role: {}", email, role);
-                }
-            } catch (io.jsonwebtoken.ExpiredJwtException e) {
-                logger.debug("Token expired: {}", e.getMessage());
+        // Если токена нет, но аутентификация уже установлена (например, через @WithMockUser), пропускаем
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            // Проверяем, есть ли уже аутентификация (например, установленная через @WithMockUser)
+            if (SecurityContextHolder.getContext().getAuthentication() != null 
+                    && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
+                logger.debug("No JWT token but authentication exists, skipping JWT filter for: {}", requestURI);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            // Если токена нет и аутентификации нет, просто продолжаем цепочку фильтров
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Обрабатываем JWT токен
+        String token = authHeader.substring(BEARER_PREFIX.length());
+        
+        try {
+            // Проверяем, истек ли токен
+            if (jwtTokenProvider.isTokenExpired(token)) {
+                logger.debug("Token expired for request: {}", request.getRequestURI());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
@@ -113,8 +103,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         org.slf4j.MDC.get("traceId") + "\"}";
                 response.getWriter().write(errorJson);
                 return;
-            } catch (Exception e) {
-                logger.error("JWT authentication failed", e);
+            }
+            
+            if (jwtTokenProvider.validateToken(token)) {
+                String email = jwtTokenProvider.getEmailFromToken(token);
+                String role = jwtTokenProvider.getRoleFromToken(token);
+                
+                if (role == null || role.isEmpty()) {
+                    logger.warn("Role is null or empty for user: {}", email);
+                    // Не очищаем контекст, если аутентификация уже установлена
+                    if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                        SecurityContextHolder.clearContext();
+                    }
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        email,
+                        token,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                );
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                logger.debug("Authenticated user: {} with role: {}", email, role);
+            }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            logger.debug("Token expired: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            String errorJson = "{\"exceptionName\":\"TOKEN_EXPIRED\",\"message\":\"Токен истек\",\"timestamp\":\"" + 
+                    java.time.Instant.now().toString() + "\",\"traceId\":\"" + 
+                    org.slf4j.MDC.get("traceId") + "\"}";
+            response.getWriter().write(errorJson);
+            return;
+        } catch (Exception e) {
+            logger.error("JWT authentication failed", e);
+            // Не очищаем контекст, если аутентификация уже установлена (например, в тестах)
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 SecurityContextHolder.clearContext();
             }
         }

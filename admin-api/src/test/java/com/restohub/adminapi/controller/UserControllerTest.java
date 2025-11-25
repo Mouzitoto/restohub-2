@@ -3,15 +3,16 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -22,30 +23,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class UserControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class UserControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private UserService userService;
 
-    @InjectMocks
-    private UserController userController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(userController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /user - создание пользователя ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testCreateUser_Success() throws Exception {
         // Arrange
         CreateUserRequest request = new CreateUserRequest();
@@ -61,7 +54,7 @@ class UserControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(response);
+        doReturn(response).when(userService).createUser(any(CreateUserRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/user")
@@ -78,6 +71,7 @@ class UserControllerTest {
     // ========== GET /user - список пользователей ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetUsers_Success() throws Exception {
         // Arrange
         UserListItemResponse item1 = new UserListItemResponse();
@@ -109,6 +103,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetUsers_WithFilters() throws Exception {
         // Arrange
         List<UserListItemResponse> items = Arrays.asList();
@@ -135,6 +130,7 @@ class UserControllerTest {
     // ========== GET /user/{userId} - детали пользователя ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetUser_Success() throws Exception {
         // Arrange
         UserResponse response = new UserResponse();
@@ -145,7 +141,7 @@ class UserControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(userService.getUser(1L)).thenReturn(response);
+        doReturn(response).when(userService).getUser(1L);
 
         // Act & Assert
         mockMvc.perform(get("/user/1"))
@@ -158,6 +154,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetUser_NotFound() throws Exception {
         // Arrange
         when(userService.getUser(999L))
@@ -173,6 +170,7 @@ class UserControllerTest {
     // ========== PUT /user/{userId} - обновление пользователя ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateUser_Success() throws Exception {
         // Arrange
         UpdateUserRequest request = new UpdateUserRequest();
@@ -201,6 +199,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateUser_NotFound() throws Exception {
         // Arrange
         UpdateUserRequest request = new UpdateUserRequest();
@@ -221,6 +220,7 @@ class UserControllerTest {
     // ========== DELETE /user/{userId} - удаление пользователя ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteUser_Success() throws Exception {
         // Arrange
         doNothing().when(userService).deleteUser(1L);
@@ -233,6 +233,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteUser_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("USER_NOT_FOUND"))
@@ -248,6 +249,7 @@ class UserControllerTest {
     // ========== PUT /user/{userId}/password - сброс пароля ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testResetPassword_Success() throws Exception {
         // Arrange
         ResetPasswordRequest request = new ResetPasswordRequest();
@@ -266,6 +268,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testResetPassword_NotFound() throws Exception {
         // Arrange
         ResetPasswordRequest request = new ResetPasswordRequest();
@@ -286,6 +289,7 @@ class UserControllerTest {
     // ========== PUT /user/{userId}/activate - активация/деактивация ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testActivateUser_Success() throws Exception {
         // Arrange
         doNothing().when(userService).activateUser(1L, true);
@@ -300,6 +304,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeactivateUser_Success() throws Exception {
         // Arrange
         doNothing().when(userService).activateUser(1L, false);
@@ -314,6 +319,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testActivateUser_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("USER_NOT_FOUND"))

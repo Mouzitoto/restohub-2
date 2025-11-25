@@ -3,15 +3,16 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.BookingStatusService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -22,43 +23,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class BookingStatusControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class BookingStatusControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private BookingStatusService bookingStatusService;
 
-    @InjectMocks
-    private BookingStatusController bookingStatusController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Создаем фиктивный валидатор, который ничего не делает
-        org.springframework.validation.Validator noOpValidator = new org.springframework.validation.Validator() {
-            @Override
-            public boolean supports(Class<?> clazz) {
-                return false; // Не поддерживаем никакие классы, чтобы валидация не вызывалась
-            }
-            
-            @Override
-            public void validate(Object target, org.springframework.validation.Errors errors) {
-                // Ничего не делаем - валидация отключена
-            }
-        };
-        
-        mockMvc = MockMvcBuilders.standaloneSetup(bookingStatusController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(noOpValidator)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /booking-status - создание статуса ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testCreateBookingStatus_Success() throws Exception {
         // Arrange
         CreateBookingStatusRequest request = new CreateBookingStatusRequest();
@@ -75,7 +55,7 @@ class BookingStatusControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(bookingStatusService.createBookingStatus(any(CreateBookingStatusRequest.class))).thenReturn(response);
+        doReturn(response).when(bookingStatusService).createBookingStatus(any(CreateBookingStatusRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/booking-status")
@@ -93,6 +73,7 @@ class BookingStatusControllerTest {
     // ========== GET /booking-status - список статусов ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetBookingStatuses_Success() throws Exception {
         // Arrange
         BookingStatusListItemResponse item1 = new BookingStatusListItemResponse();
@@ -107,8 +88,7 @@ class BookingStatusControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 100, 0, false);
         PaginationResponse<List<BookingStatusListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(bookingStatusService.getBookingStatuses(eq(100), eq(0), eq("displayOrder"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(bookingStatusService).getBookingStatuses(eq(100), eq(0), eq("displayOrder"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/booking-status")
@@ -127,6 +107,7 @@ class BookingStatusControllerTest {
     // ========== GET /booking-status/{statusId} - детали статуса ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetBookingStatus_Success() throws Exception {
         // Arrange
         BookingStatusResponse response = new BookingStatusResponse();
@@ -138,7 +119,7 @@ class BookingStatusControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(bookingStatusService.getBookingStatus(1L)).thenReturn(response);
+        doReturn(response).when(bookingStatusService).getBookingStatus(1L);
 
         // Act & Assert
         mockMvc.perform(get("/booking-status/1"))
@@ -152,10 +133,10 @@ class BookingStatusControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetBookingStatus_NotFound() throws Exception {
         // Arrange
-        when(bookingStatusService.getBookingStatus(999L))
-                .thenThrow(new RuntimeException("BOOKING_STATUS_NOT_FOUND"));
+        doThrow(new RuntimeException("BOOKING_STATUS_NOT_FOUND")).when(bookingStatusService).getBookingStatus(999L);
 
         // Act & Assert
         mockMvc.perform(get("/booking-status/999"))
@@ -167,6 +148,7 @@ class BookingStatusControllerTest {
     // ========== PUT /booking-status/{statusId} - обновление статуса ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateBookingStatus_Success() throws Exception {
         // Arrange
         UpdateBookingStatusDetailsRequest request = new UpdateBookingStatusDetailsRequest();
@@ -197,6 +179,7 @@ class BookingStatusControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateBookingStatus_NotFound() throws Exception {
         // Arrange
         UpdateBookingStatusDetailsRequest request = new UpdateBookingStatusDetailsRequest();
@@ -217,6 +200,7 @@ class BookingStatusControllerTest {
     // ========== DELETE /booking-status/{statusId} - удаление статуса ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteBookingStatus_Success() throws Exception {
         // Arrange
         doNothing().when(bookingStatusService).deleteBookingStatus(1L);
@@ -229,6 +213,7 @@ class BookingStatusControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteBookingStatus_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("BOOKING_STATUS_NOT_FOUND"))

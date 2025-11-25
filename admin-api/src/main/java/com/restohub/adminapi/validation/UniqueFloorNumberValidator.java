@@ -1,17 +1,10 @@
 package com.restohub.adminapi.validation;
 
-import com.restohub.adminapi.repository.FloorRepository;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.support.SpringBeanAutowiringSupport;
 
 public class UniqueFloorNumberValidator implements ConstraintValidator<UniqueFloorNumber, String> {
-    
-    @Autowired
-    private FloorRepository floorRepository;
-    
-    private Long restaurantId;
     
     @Override
     public void initialize(UniqueFloorNumber constraintAnnotation) {
@@ -31,7 +24,6 @@ public class UniqueFloorNumberValidator implements ConstraintValidator<UniqueFlo
     }
     
     public void setRestaurantId(Long restaurantId) {
-        this.restaurantId = restaurantId;
     }
 }
 

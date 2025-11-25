@@ -4,35 +4,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.CreateRestaurantRequest;
 import com.restohub.adminapi.dto.RestaurantResponse;
 import com.restohub.adminapi.service.RestaurantService;
-import com.restohub.adminapi.util.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// Временно отключено из-за проблем с @WebMvcTest и зависимостями
-// TODO: Исправить тест, добавив все необходимые моки или используя @SpringBootTest
-//@WebMvcTest(RestaurantController.class)
-@org.junit.jupiter.api.Disabled("Временно отключено для сборки Docker")
-class RestaurantControllerIntegrationTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class RestaurantControllerIntegrationTest extends BaseControllerTest {
     
     @Autowired
     private MockMvc mockMvc;
     
     @MockBean
     private RestaurantService restaurantService;
-    
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -53,18 +45,16 @@ class RestaurantControllerIntegrationTest {
         response.setPhone("+79991234567");
         response.setIsActive(true);
         
-        when(restaurantService.createRestaurant(any(CreateRestaurantRequest.class)))
-                .thenReturn(response);
+        doReturn(response).when(restaurantService).createRestaurant(any(CreateRestaurantRequest.class));
         
         // Act & Assert
         mockMvc.perform(post("/r")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("Test Restaurant"));
-        
+
         verify(restaurantService, times(1)).createRestaurant(any(CreateRestaurantRequest.class));
     }
     
@@ -83,22 +73,20 @@ class RestaurantControllerIntegrationTest {
         response.setName("Test Restaurant");
         response.setIsActive(true);
         
-        when(restaurantService.createRestaurant(any(CreateRestaurantRequest.class)))
-                .thenReturn(response);
+        doReturn(response).when(restaurantService).createRestaurant(any(CreateRestaurantRequest.class));
         
         // Act & Assert
         mockMvc.perform(post("/r")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L));
-        
+
         verify(restaurantService, times(1)).createRestaurant(any(CreateRestaurantRequest.class));
     }
     
     @Test
-    void testCreateRestaurant_WithoutAuthentication_Returns401() throws Exception {
+    void testCreateRestaurant_WithoutAuthentication_Returns403() throws Exception {
         // Arrange
         CreateRestaurantRequest request = new CreateRestaurantRequest();
         request.setName("Test Restaurant");
@@ -106,11 +94,11 @@ class RestaurantControllerIntegrationTest {
         request.setPhone("+79991234567");
         
         // Act & Assert
+        // Spring Security с @PreAuthorize возвращает 403 для неаутентифицированных запросов
         mockMvc.perform(post("/r")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
         
         verify(restaurantService, never()).createRestaurant(any());
     }
@@ -130,12 +118,10 @@ class RestaurantControllerIntegrationTest {
         response.setName("Test Restaurant");
         response.setIsActive(true);
         
-        when(restaurantService.createRestaurant(any(CreateRestaurantRequest.class)))
-                .thenReturn(response);
+        doReturn(response).when(restaurantService).createRestaurant(any(CreateRestaurantRequest.class));
         
         // Act & Assert
         mockMvc.perform(post("/r")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());

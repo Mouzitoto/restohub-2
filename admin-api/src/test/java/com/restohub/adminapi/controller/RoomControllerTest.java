@@ -3,16 +3,17 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.RoomService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,30 +26,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class RoomControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class RoomControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private RoomService roomService;
 
-    @InjectMocks
-    private RoomController roomController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(roomController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /r/{id}/room - создание помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreateRoom_Success() throws Exception {
         // Arrange
         CreateRoomRequest request = new CreateRoomRequest();
@@ -66,7 +59,7 @@ class RoomControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(roomService.createRoom(eq(1L), any(CreateRoomRequest.class))).thenReturn(response);
+        doReturn(response).when(roomService).createRoom(eq(1L), any(CreateRoomRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/r/1/room")
@@ -83,6 +76,7 @@ class RoomControllerTest {
     // ========== GET /r/{id}/room - список помещений ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRooms_Success() throws Exception {
         // Arrange
         RoomListItemResponse item1 = new RoomListItemResponse();
@@ -97,8 +91,7 @@ class RoomControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 100, 0, false);
         PaginationResponse<List<RoomListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(roomService.getRooms(eq(1L), eq(100), eq(0), isNull(), eq("name"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(roomService).getRooms(eq(1L), eq(100), eq(0), isNull(), eq("name"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/room")
@@ -115,14 +108,14 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRooms_WithFloorFilter() throws Exception {
         // Arrange
         List<RoomListItemResponse> items = Arrays.asList();
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(0L, 100, 0, false);
         PaginationResponse<List<RoomListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(roomService.getRooms(eq(1L), eq(100), eq(0), eq(1L), eq("name"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(roomService).getRooms(eq(1L), eq(100), eq(0), eq(1L), eq("name"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/room")
@@ -139,6 +132,7 @@ class RoomControllerTest {
     // ========== GET /r/{id}/room/{roomId} - детали помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRoom_Success() throws Exception {
         // Arrange
         RoomResponse response = new RoomResponse();
@@ -151,7 +145,7 @@ class RoomControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(roomService.getRoom(1L, 1L)).thenReturn(response);
+        doReturn(response).when(roomService).getRoom(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/room/1"))
@@ -164,6 +158,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRoom_NotFound() throws Exception {
         // Arrange
         when(roomService.getRoom(1L, 999L))
@@ -179,6 +174,7 @@ class RoomControllerTest {
     // ========== PUT /r/{id}/room/{roomId} - обновление помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRoom_Success() throws Exception {
         // Arrange
         UpdateRoomRequest request = new UpdateRoomRequest();
@@ -194,8 +190,7 @@ class RoomControllerTest {
         response.setIsActive(true);
         response.setUpdatedAt(Instant.now());
 
-        when(roomService.updateRoom(eq(1L), eq(1L), any(UpdateRoomRequest.class)))
-                .thenReturn(response);
+        doReturn(response).when(roomService).updateRoom(eq(1L), eq(1L), any(UpdateRoomRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/r/1/room/1")
@@ -209,13 +204,13 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRoom_NotFound() throws Exception {
         // Arrange
         UpdateRoomRequest request = new UpdateRoomRequest();
         request.setName("Обновленный зал");
 
-        when(roomService.updateRoom(eq(1L), eq(999L), any(UpdateRoomRequest.class)))
-                .thenThrow(new RuntimeException("ROOM_NOT_FOUND"));
+        doThrow(new RuntimeException("ROOM_NOT_FOUND")).when(roomService).updateRoom(eq(1L), eq(999L), any(UpdateRoomRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/r/1/room/999")
@@ -229,6 +224,7 @@ class RoomControllerTest {
     // ========== DELETE /r/{id}/room/{roomId} - удаление помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRoom_Success() throws Exception {
         // Arrange
         doNothing().when(roomService).deleteRoom(1L, 1L);
@@ -241,6 +237,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRoom_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("ROOM_NOT_FOUND"))
@@ -256,6 +253,7 @@ class RoomControllerTest {
     // ========== POST /r/{id}/room/{roomId}/image - загрузка изображения помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRoomImage_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -286,6 +284,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRoomImage_NotFound() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -307,6 +306,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRoomImage_IOException() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -317,7 +317,7 @@ class RoomControllerTest {
         );
 
         // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
-        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        // GlobalExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
         doThrow(new IOException("IO_ERROR"))
                 .when(roomService).uploadRoomImage(eq(1L), eq(1L), any(MultipartFile.class));
 
@@ -333,6 +333,7 @@ class RoomControllerTest {
     // ========== DELETE /r/{id}/room/{roomId}/image - удаление изображения помещения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRoomImage_Success() throws Exception {
         // Arrange
         RoomResponse response = new RoomResponse();
@@ -343,7 +344,7 @@ class RoomControllerTest {
         response.setImageId(null);
         response.setIsActive(true);
 
-        when(roomService.deleteRoomImage(1L, 1L)).thenReturn(response);
+        doReturn(response).when(roomService).deleteRoomImage(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(delete("/r/1/room/1/image"))
@@ -355,10 +356,10 @@ class RoomControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRoomImage_NotFound() throws Exception {
         // Arrange
-        when(roomService.deleteRoomImage(1L, 999L))
-                .thenThrow(new RuntimeException("ROOM_NOT_FOUND"));
+        doThrow(new RuntimeException("ROOM_NOT_FOUND")).when(roomService).deleteRoomImage(1L, 999L);
 
         // Act & Assert
         mockMvc.perform(delete("/r/1/room/999/image"))

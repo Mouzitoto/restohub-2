@@ -3,16 +3,17 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.MenuItemService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -26,43 +27,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class MenuItemControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class MenuItemControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private MenuItemService menuItemService;
 
-    @InjectMocks
-    private MenuItemController menuItemController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Создаем фиктивный валидатор, который ничего не делает
-        org.springframework.validation.Validator noOpValidator = new org.springframework.validation.Validator() {
-            @Override
-            public boolean supports(Class<?> clazz) {
-                return false; // Не поддерживаем никакие классы, чтобы валидация не вызывалась
-            }
-            
-            @Override
-            public void validate(Object target, org.springframework.validation.Errors errors) {
-                // Ничего не делаем - валидация отключена
-            }
-        };
-        
-        mockMvc = MockMvcBuilders.standaloneSetup(menuItemController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(noOpValidator)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /r/{id}/menu-item - создание блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreateMenuItem_Success() throws Exception {
         // Arrange
         CreateMenuItemRequest request = new CreateMenuItemRequest();
@@ -82,7 +62,7 @@ class MenuItemControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(menuItemService.createMenuItem(eq(1L), any(CreateMenuItemRequest.class))).thenReturn(response);
+        doReturn(response).when(menuItemService).createMenuItem(eq(1L), any(CreateMenuItemRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/r/1/menu-item")
@@ -99,6 +79,7 @@ class MenuItemControllerTest {
     // ========== GET /r/{id}/menu-item - список блюд ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuItems_Success() throws Exception {
         // Arrange
         MenuItemListItemResponse item1 = new MenuItemListItemResponse();
@@ -132,6 +113,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuItems_WithFilters() throws Exception {
         // Arrange
         List<MenuItemListItemResponse> items = Arrays.asList();
@@ -158,6 +140,7 @@ class MenuItemControllerTest {
     // ========== GET /r/{id}/menu-item/{itemId} - детали блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuItem_Success() throws Exception {
         // Arrange
         MenuItemResponse response = new MenuItemResponse();
@@ -171,7 +154,7 @@ class MenuItemControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(menuItemService.getMenuItem(1L, 1L)).thenReturn(response);
+        doReturn(response).when(menuItemService).getMenuItem(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/menu-item/1"))
@@ -184,6 +167,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuItem_NotFound() throws Exception {
         // Arrange
         when(menuItemService.getMenuItem(1L, 999L))
@@ -199,6 +183,7 @@ class MenuItemControllerTest {
     // ========== PUT /r/{id}/menu-item/{itemId} - обновление блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateMenuItem_Success() throws Exception {
         // Arrange
         UpdateMenuItemRequest request = new UpdateMenuItemRequest();
@@ -228,6 +213,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateMenuItem_NotFound() throws Exception {
         // Arrange
         UpdateMenuItemRequest request = new UpdateMenuItemRequest();
@@ -248,6 +234,7 @@ class MenuItemControllerTest {
     // ========== DELETE /r/{id}/menu-item/{itemId} - удаление блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteMenuItem_Success() throws Exception {
         // Arrange
         doNothing().when(menuItemService).deleteMenuItem(1L, 1L);
@@ -260,6 +247,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteMenuItem_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("MENU_ITEM_NOT_FOUND"))
@@ -275,6 +263,7 @@ class MenuItemControllerTest {
     // ========== PUT /r/{id}/menu-item/reorder - изменение порядка блюд ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testReorderMenuItems_Success() throws Exception {
         // Arrange
         ReorderMenuItemsRequest request = new ReorderMenuItemsRequest();
@@ -304,6 +293,7 @@ class MenuItemControllerTest {
     // ========== POST /r/{id}/menu-item/{itemId}/image - загрузка изображения блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadMenuItemImage_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -334,6 +324,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadMenuItemImage_NotFound() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -355,6 +346,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadMenuItemImage_IOException() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -365,7 +357,7 @@ class MenuItemControllerTest {
         );
 
         // Контроллер ловит IOException и бросает RuntimeException("IMAGE_UPLOAD_ERROR")
-        // TestExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
+        // GlobalExceptionHandler обрабатывает "IMAGE_UPLOAD_ERROR" как BAD_REQUEST (400)
         doThrow(new IOException("IO_ERROR"))
                 .when(menuItemService).uploadMenuItemImage(eq(1L), eq(1L), any(MultipartFile.class));
 
@@ -381,6 +373,7 @@ class MenuItemControllerTest {
     // ========== DELETE /r/{id}/menu-item/{itemId}/image - удаление изображения блюда ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteMenuItemImage_Success() throws Exception {
         // Arrange
         MenuItemResponse response = new MenuItemResponse();
@@ -391,7 +384,7 @@ class MenuItemControllerTest {
         response.setImageId(null);
         response.setIsActive(true);
 
-        when(menuItemService.deleteMenuItemImage(1L, 1L)).thenReturn(response);
+        doReturn(response).when(menuItemService).deleteMenuItemImage(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(delete("/r/1/menu-item/1/image"))
@@ -403,6 +396,7 @@ class MenuItemControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteMenuItemImage_NotFound() throws Exception {
         // Arrange
         when(menuItemService.deleteMenuItemImage(1L, 999L))

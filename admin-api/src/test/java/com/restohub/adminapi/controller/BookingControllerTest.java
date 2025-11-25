@@ -2,14 +2,12 @@ package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.BookingService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,28 +20,19 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class BookingControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class BookingControllerTest extends BaseControllerTest {
 
-    @Mock
-    private BookingService bookingService;
-
-    @InjectMocks
-    private BookingController bookingController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(bookingController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-    }
+    @MockBean
+    private BookingService bookingService;
 
     // ========== GET /r/{id}/booking - список бронирований ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetBookings_Success() throws Exception {
         // Arrange
         BookingListItemResponse item1 = new BookingListItemResponse();
@@ -68,8 +57,7 @@ class BookingControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 50, 0, false);
         PaginationResponse<List<BookingListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(bookingService.getBookings(eq(1L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("bookingDate"), eq("desc")))
-                .thenReturn(response);
+        doReturn(response).when(bookingService).getBookings(eq(1L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("bookingDate"), eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/booking")
@@ -87,15 +75,24 @@ class BookingControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetBookings_WithFilters() throws Exception {
         // Arrange
         List<BookingListItemResponse> items = Arrays.asList();
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(0L, 50, 0, false);
         PaginationResponse<List<BookingListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(bookingService.getBookings(eq(1L), eq(50), eq(0), eq("APPROVED"), 
-                eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.of(2024, 1, 31)), eq(1L), eq("+79991234567"), eq("bookingDate"), eq("desc")))
-                .thenReturn(response);
+        doReturn(response).when(bookingService).getBookings(
+                eq(1L), 
+                eq(50), 
+                eq(0), 
+                eq("APPROVED"), 
+                eq(LocalDate.of(2024, 1, 1)), 
+                eq(LocalDate.of(2024, 1, 31)), 
+                eq(1L), 
+                eq("+79991234567"), 
+                eq("bookingDate"), 
+                eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/1/booking")
@@ -107,29 +104,41 @@ class BookingControllerTest {
                         .param("tableId", "1")
                         .param("clientPhone", "+79991234567"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").exists())
                 .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.pagination").exists())
                 .andExpect(jsonPath("$.pagination.total").value(0L));
 
-        verify(bookingService, times(1)).getBookings(eq(1L), eq(50), eq(0), eq("APPROVED"), 
-                eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.of(2024, 1, 31)), eq(1L), eq("+79991234567"), eq("bookingDate"), eq("desc"));
+        verify(bookingService, times(1)).getBookings(
+                eq(1L), 
+                eq(50), 
+                eq(0), 
+                eq("APPROVED"), 
+                eq(LocalDate.of(2024, 1, 1)), 
+                eq(LocalDate.of(2024, 1, 31)), 
+                eq(1L), 
+                eq("+79991234567"), 
+                eq("bookingDate"), 
+                eq("desc"));
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetBookings_RestaurantNotFound() throws Exception {
         // Arrange
-        when(bookingService.getBookings(eq(999L), anyInt(), anyInt(), isNull(), isNull(), isNull(), isNull(), isNull(), anyString(), anyString()))
-                .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
+        doThrow(new RuntimeException("RESTAURANT_NOT_FOUND")).when(bookingService).getBookings(eq(999L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("bookingDate"), eq("desc"));
 
         // Act & Assert
         mockMvc.perform(get("/r/999/booking"))
                 .andExpect(status().isNotFound());
 
-        verify(bookingService, times(1)).getBookings(eq(999L), anyInt(), anyInt(), isNull(), isNull(), isNull(), isNull(), isNull(), anyString(), anyString());
+        verify(bookingService, times(1)).getBookings(eq(999L), eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), isNull(), eq("bookingDate"), eq("desc"));
     }
 
     // ========== GET /r/{id}/booking/{bookingId} - детали бронирования ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetBooking_Success() throws Exception {
         // Arrange
         BookingResponse response = new BookingResponse();
@@ -171,7 +180,7 @@ class BookingControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(bookingService.getBooking(1L, 1L)).thenReturn(response);
+        doReturn(response).when(bookingService).getBooking(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/booking/1"))
@@ -185,10 +194,10 @@ class BookingControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetBooking_NotFound() throws Exception {
         // Arrange
-        when(bookingService.getBooking(1L, 999L))
-                .thenThrow(new RuntimeException("BOOKING_NOT_FOUND"));
+        doThrow(new RuntimeException("BOOKING_NOT_FOUND")).when(bookingService).getBooking(1L, 999L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/booking/999"))
@@ -200,6 +209,7 @@ class BookingControllerTest {
     // ========== PUT /r/{id}/booking/{bookingId}/cancel - отмена бронирования ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelBooking_Success() throws Exception {
         // Arrange
         BookingResponse response = new BookingResponse();
@@ -213,7 +223,7 @@ class BookingControllerTest {
         response.setStatus(statusInfo);
         response.setUpdatedAt(Instant.now());
 
-        when(bookingService.cancelBooking(1L, 1L)).thenReturn(response);
+        doReturn(response).when(bookingService).cancelBooking(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/booking/1/cancel"))
@@ -225,10 +235,10 @@ class BookingControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelBooking_NotFound() throws Exception {
         // Arrange
-        when(bookingService.cancelBooking(1L, 999L))
-                .thenThrow(new RuntimeException("BOOKING_NOT_FOUND"));
+        doThrow(new RuntimeException("BOOKING_NOT_FOUND")).when(bookingService).cancelBooking(1L, 999L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/booking/999/cancel"))
@@ -238,10 +248,10 @@ class BookingControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCancelBooking_AlreadyCancelled() throws Exception {
         // Arrange
-        when(bookingService.cancelBooking(1L, 1L))
-                .thenThrow(new RuntimeException("BOOKING_ALREADY_CANCELLED_OR_REJECTED"));
+        doThrow(new RuntimeException("BOOKING_ALREADY_CANCELLED_OR_REJECTED")).when(bookingService).cancelBooking(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(put("/r/1/booking/1/cancel"))

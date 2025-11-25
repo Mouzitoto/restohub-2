@@ -1,49 +1,42 @@
 package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.service.ImageService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class ImageControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class ImageControllerTest extends BaseControllerTest {
 
-    @Mock
-    private ImageService imageService;
-
-    @InjectMocks
-    private ImageController imageController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(imageController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .build();
-    }
+    @MockBean
+    private ImageService imageService;
 
     // ========== GET /image - получение изображения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetImage_Original() throws Exception {
         // Arrange
         byte[] imageData = "image content".getBytes();
         String mimeType = "image/jpeg";
 
-        when(imageService.getImage(1L, false)).thenReturn(imageData);
-        when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
+        doReturn(imageData).when(imageService).getImage(1L, false);
+        doReturn(mimeType).when(imageService).getImageMimeType(1L);
 
         // Act & Assert
         mockMvc.perform(get("/image")
@@ -58,13 +51,14 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetImage_Preview() throws Exception {
         // Arrange
         byte[] previewData = "preview content".getBytes();
         String mimeType = "image/jpeg";
 
-        when(imageService.getImage(1L, true)).thenReturn(previewData);
-        when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
+        doReturn(previewData).when(imageService).getImage(1L, true);
+        doReturn(mimeType).when(imageService).getImageMimeType(1L);
 
         // Act & Assert
         mockMvc.perform(get("/image")
@@ -79,13 +73,14 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetImage_DefaultPreviewFalse() throws Exception {
         // Arrange
         byte[] imageData = "image content".getBytes();
         String mimeType = "image/png";
 
-        when(imageService.getImage(1L, false)).thenReturn(imageData);
-        when(imageService.getImageMimeType(1L)).thenReturn(mimeType);
+        doReturn(imageData).when(imageService).getImage(1L, false);
+        doReturn(mimeType).when(imageService).getImageMimeType(1L);
 
         // Act & Assert
         mockMvc.perform(get("/image")
@@ -99,10 +94,10 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetImage_NotFound() throws Exception {
         // Arrange
-        when(imageService.getImage(999L, false))
-                .thenThrow(new RuntimeException("IMAGE_NOT_FOUND"));
+        doThrow(new RuntimeException("IMAGE_NOT_FOUND")).when(imageService).getImage(999L, false);
 
         // Act & Assert
         mockMvc.perform(get("/image")
@@ -113,6 +108,7 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetImage_WithoutId() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/image"))
@@ -124,6 +120,7 @@ class ImageControllerTest {
     // ========== DELETE /image/:id - удаление изображения ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteImage_Success() throws Exception {
         // Arrange
         doNothing().when(imageService).deleteImage(1L);
@@ -136,6 +133,7 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteImage_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("IMAGE_NOT_FOUND"))
@@ -149,6 +147,7 @@ class ImageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteImage_InUse() throws Exception {
         // Arrange
         doThrow(new RuntimeException("IMAGE_IN_USE"))

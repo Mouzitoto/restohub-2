@@ -2,63 +2,45 @@ package com.restohub.adminapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
+import com.restohub.adminapi.repository.MenuCategoryRepository;
 import com.restohub.adminapi.service.MenuCategoryService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class MenuCategoryControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class MenuCategoryControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private MenuCategoryService menuCategoryService;
 
-    @InjectMocks
-    private MenuCategoryController menuCategoryController;
+    @MockBean
+    private MenuCategoryRepository menuCategoryRepository;
 
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Создаем фиктивный валидатор, который ничего не делает
-        org.springframework.validation.Validator noOpValidator = new org.springframework.validation.Validator() {
-            @Override
-            public boolean supports(Class<?> clazz) {
-                return false; // Не поддерживаем никакие классы, чтобы валидация не вызывалась
-            }
-            
-            @Override
-            public void validate(Object target, org.springframework.validation.Errors errors) {
-                // Ничего не делаем - валидация отключена
-            }
-        };
-        
-        mockMvc = MockMvcBuilders.standaloneSetup(menuCategoryController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(noOpValidator)
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /menu-category - создание категории ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testCreateMenuCategory_Success() throws Exception {
         // Arrange
         CreateMenuCategoryRequest request = new CreateMenuCategoryRequest();
@@ -75,7 +57,10 @@ class MenuCategoryControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(menuCategoryService.createMenuCategory(any(CreateMenuCategoryRequest.class))).thenReturn(response);
+        // Настраиваем мок репозитория для валидатора UniqueCategoryName
+        doReturn(Optional.empty()).when(menuCategoryRepository).findByNameAndIsActiveTrue(anyString());
+        
+        doReturn(response).when(menuCategoryService).createMenuCategory(any(CreateMenuCategoryRequest.class));
 
         // Act & Assert
         mockMvc.perform(post("/menu-category")
@@ -92,6 +77,7 @@ class MenuCategoryControllerTest {
     // ========== GET /menu-category - список категорий ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuCategories_Success() throws Exception {
         // Arrange
         MenuCategoryListItemResponse item1 = new MenuCategoryListItemResponse();
@@ -106,8 +92,7 @@ class MenuCategoryControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 100, 0, false);
         PaginationResponse<List<MenuCategoryListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(menuCategoryService.getMenuCategories(eq(100), eq(0), eq("displayOrder"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(menuCategoryService).getMenuCategories(eq(100), eq(0), eq("displayOrder"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/menu-category")
@@ -126,6 +111,7 @@ class MenuCategoryControllerTest {
     // ========== GET /menu-category/{categoryId} - детали категории ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuCategory_Success() throws Exception {
         // Arrange
         MenuCategoryResponse response = new MenuCategoryResponse();
@@ -137,7 +123,7 @@ class MenuCategoryControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(menuCategoryService.getMenuCategory(1L)).thenReturn(response);
+        doReturn(response).when(menuCategoryService).getMenuCategory(1L);
 
         // Act & Assert
         mockMvc.perform(get("/menu-category/1"))
@@ -150,10 +136,11 @@ class MenuCategoryControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetMenuCategory_NotFound() throws Exception {
         // Arrange
-        when(menuCategoryService.getMenuCategory(999L))
-                .thenThrow(new RuntimeException("MENU_CATEGORY_NOT_FOUND"));
+        doReturn(Optional.empty()).when(menuCategoryRepository).findByNameAndIsActiveTrue(anyString());
+        doThrow(new RuntimeException("CATEGORY_NOT_FOUND")).when(menuCategoryService).getMenuCategory(999L);
 
         // Act & Assert
         mockMvc.perform(get("/menu-category/999"))
@@ -165,6 +152,7 @@ class MenuCategoryControllerTest {
     // ========== PUT /menu-category/{categoryId} - обновление категории ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateMenuCategory_Success() throws Exception {
         // Arrange
         UpdateMenuCategoryRequest request = new UpdateMenuCategoryRequest();
@@ -178,8 +166,7 @@ class MenuCategoryControllerTest {
         response.setIsActive(true);
         response.setUpdatedAt(Instant.now());
 
-        when(menuCategoryService.updateMenuCategory(eq(1L), any(UpdateMenuCategoryRequest.class)))
-                .thenReturn(response);
+        doReturn(response).when(menuCategoryService).updateMenuCategory(eq(1L), any(UpdateMenuCategoryRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/menu-category/1")
@@ -193,13 +180,14 @@ class MenuCategoryControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateMenuCategory_NotFound() throws Exception {
         // Arrange
         UpdateMenuCategoryRequest request = new UpdateMenuCategoryRequest();
         request.setName("Обновленная категория");
 
-        when(menuCategoryService.updateMenuCategory(eq(999L), any(UpdateMenuCategoryRequest.class)))
-                .thenThrow(new RuntimeException("MENU_CATEGORY_NOT_FOUND"));
+        doReturn(Optional.empty()).when(menuCategoryRepository).findByNameAndIsActiveTrue(anyString());
+        doThrow(new RuntimeException("CATEGORY_NOT_FOUND")).when(menuCategoryService).updateMenuCategory(eq(999L), any(UpdateMenuCategoryRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/menu-category/999")
@@ -213,6 +201,7 @@ class MenuCategoryControllerTest {
     // ========== DELETE /menu-category/{categoryId} - удаление категории ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteMenuCategory_Success() throws Exception {
         // Arrange
         doNothing().when(menuCategoryService).deleteMenuCategory(1L);
@@ -225,9 +214,11 @@ class MenuCategoryControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteMenuCategory_NotFound() throws Exception {
         // Arrange
-        doThrow(new RuntimeException("MENU_CATEGORY_NOT_FOUND"))
+        doReturn(Optional.empty()).when(menuCategoryRepository).findByNameAndIsActiveTrue(anyString());
+        doThrow(new RuntimeException("CATEGORY_NOT_FOUND"))
                 .when(menuCategoryService).deleteMenuCategory(999L);
 
         // Act & Assert
@@ -240,6 +231,7 @@ class MenuCategoryControllerTest {
     // ========== PUT /menu-category/reorder - изменение порядка категорий ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testReorderMenuCategories_Success() throws Exception {
         // Arrange
         ReorderMenuCategoriesRequest request = new ReorderMenuCategoriesRequest();

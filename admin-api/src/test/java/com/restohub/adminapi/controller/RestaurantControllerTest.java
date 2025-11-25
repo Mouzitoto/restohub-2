@@ -3,16 +3,17 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.RestaurantService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -27,32 +28,22 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class RestaurantControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class RestaurantControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private RestaurantService restaurantService;
 
-    @InjectMocks
-    private RestaurantController restaurantController;
-
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Для тестирования с Spring Security нужно использовать WebApplicationContext
-        // Но для упрощения, отключим валидацию и Spring Security в standalone режиме
-        mockMvc = MockMvcBuilders.standaloneSetup(restaurantController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null) // Отключаем валидацию для упрощения тестов
-                .build();
-        objectMapper = new ObjectMapper();
-    }
 
     // ========== POST /r - создание ресторана ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreateRestaurant_Success() throws Exception {
         // Arrange
         CreateRestaurantRequest request = new CreateRestaurantRequest();
@@ -86,7 +77,7 @@ class RestaurantControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(restaurantService.createRestaurant(any(CreateRestaurantRequest.class))).thenReturn(response);
+        doReturn(response).when(restaurantService).createRestaurant(any(CreateRestaurantRequest.class));
 
         // Act & Assert
         // Отключаем валидацию для упрощения тестов (в реальном приложении валидация работает)
@@ -104,31 +95,26 @@ class RestaurantControllerTest {
     }
 
     @Test
-    void testCreateRestaurant_ForbiddenForManager() throws Exception {
-        // Arrange
-        CreateRestaurantRequest request = new CreateRestaurantRequest();
-        request.setName("Test Restaurant");
-        request.setAddress("Test Address 123");
-        request.setPhone("+79991234567");
-
-        // В standalone режиме @PreAuthorize не работает, поэтому этот тест нужно пропустить
-        // или использовать @WebMvcTest с полной конфигурацией Spring Security
-        // Для упрощения, просто проверим, что сервис не вызывается без авторизации
-        // В реальном приложении это будет обрабатываться Spring Security
-    }
-
-    @Test
+    @WithMockUser(roles = "MANAGER")
     void testCreateRestaurant_ValidationError() throws Exception {
-        // Arrange
-        // Не указываем обязательные поля
+        // Arrange - не указываем обязательные поля
+        CreateRestaurantRequest request = new CreateRestaurantRequest();
+        // name, address, phone не указаны
 
-        // В standalone режиме валидация может не работать
-        // Этот тест нужно пропустить или использовать @WebMvcTest с полной конфигурацией
+        // Act & Assert
+        mockMvc.perform(post("/r")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(restaurantService, never()).createRestaurant(any(CreateRestaurantRequest.class));
     }
 
     // ========== GET /r - список ресторанов ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRestaurants_Success() throws Exception {
         // Arrange
         RestaurantListItemResponse item1 = new RestaurantListItemResponse();
@@ -176,6 +162,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRestaurants_WithSearch() throws Exception {
         // Arrange
         List<RestaurantListItemResponse> items = Arrays.asList();
@@ -198,6 +185,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRestaurants_WithIsActive() throws Exception {
         // Arrange
         List<RestaurantListItemResponse> items = Arrays.asList();
@@ -220,6 +208,7 @@ class RestaurantControllerTest {
     // ========== GET /r/:id - получение ресторана ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRestaurant_Success() throws Exception {
         // Arrange
         RestaurantResponse response = new RestaurantResponse();
@@ -240,7 +229,7 @@ class RestaurantControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(restaurantService.getRestaurant(1L)).thenReturn(response);
+        doReturn(response).when(restaurantService).getRestaurant(1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1"))
@@ -255,6 +244,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetRestaurant_NotFound() throws Exception {
         // Arrange
         when(restaurantService.getRestaurant(999L))
@@ -270,6 +260,7 @@ class RestaurantControllerTest {
     // ========== PUT /r/:id - обновление ресторана ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRestaurant_Success() throws Exception {
         // Arrange
         UpdateRestaurantRequest request = new UpdateRestaurantRequest();
@@ -304,6 +295,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRestaurant_PartialUpdate() throws Exception {
         // Arrange
         UpdateRestaurantRequest request = new UpdateRestaurantRequest();
@@ -332,6 +324,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRestaurant_WithIsActive() throws Exception {
         // Arrange
         UpdateRestaurantRequest request = new UpdateRestaurantRequest();
@@ -357,6 +350,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUpdateRestaurant_NotFound() throws Exception {
         // Arrange
         UpdateRestaurantRequest request = new UpdateRestaurantRequest();
@@ -377,6 +371,7 @@ class RestaurantControllerTest {
     // ========== DELETE /r/:id - удаление ресторана ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteRestaurant_Success() throws Exception {
         // Arrange
         doNothing().when(restaurantService).deleteRestaurant(1L);
@@ -389,12 +384,20 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRestaurant_ForbiddenForManager() throws Exception {
-        // В standalone режиме @PreAuthorize не работает
-        // Этот тест нужно пропустить или использовать @WebMvcTest
+        // Arrange
+        doNothing().when(restaurantService).deleteRestaurant(1L);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1"))
+                .andExpect(status().isForbidden());
+
+        verify(restaurantService, never()).deleteRestaurant(anyLong());
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteRestaurant_NotFound() throws Exception {
         // Arrange
         doThrow(new RuntimeException("RESTAURANT_NOT_FOUND"))
@@ -408,6 +411,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteRestaurant_InUse() throws Exception {
         // Arrange
         doThrow(new RuntimeException("RESTAURANT_IN_USE"))
@@ -423,6 +427,7 @@ class RestaurantControllerTest {
     // ========== POST /r/:id/image - загрузка изображения ресторана ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRestaurantImage_Logo_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -454,6 +459,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRestaurantImage_Background_Success() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -485,6 +491,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRestaurantImage_InvalidType() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -511,6 +518,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testUploadRestaurantImage_RestaurantNotFound() throws Exception {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
@@ -539,6 +547,7 @@ class RestaurantControllerTest {
     // ========== DELETE /r/:id/image - удаление изображения ресторана ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRestaurantImage_Logo_Success() throws Exception {
         // Arrange
         RestaurantResponse response = new RestaurantResponse();
@@ -563,6 +572,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRestaurantImage_Background_Success() throws Exception {
         // Arrange
         RestaurantResponse response = new RestaurantResponse();
@@ -587,6 +597,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRestaurantImage_InvalidType() throws Exception {
         // Arrange
         when(restaurantService.deleteRestaurantImage(1L, "invalid"))
@@ -601,6 +612,7 @@ class RestaurantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testDeleteRestaurantImage_RestaurantNotFound() throws Exception {
         // Arrange
         when(restaurantService.deleteRestaurantImage(999L, "logo"))

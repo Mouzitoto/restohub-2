@@ -2,14 +2,15 @@ package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.dto.RoleResponse;
 import com.restohub.adminapi.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.List;
@@ -18,28 +19,19 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class RoleControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class RoleControllerTest extends BaseControllerTest {
 
-    @Mock
-    private UserService userService;
-
-    @InjectMocks
-    private RoleController roleController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(roleController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-    }
+    @MockBean
+    private UserService userService;
 
     // ========== GET /role - список ролей ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetRoles_Success() throws Exception {
         // Arrange
         RoleResponse role1 = new RoleResponse();
@@ -54,7 +46,7 @@ class RoleControllerTest {
 
         List<RoleResponse> roles = Arrays.asList(role1, role2);
 
-        when(userService.getRoles()).thenReturn(roles);
+        doReturn(roles).when(userService).getRoles();
 
         // Act & Assert
         mockMvc.perform(get("/role"))

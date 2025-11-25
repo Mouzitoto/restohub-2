@@ -1,67 +1,48 @@
 package com.restohub.adminapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.restohub.adminapi.dto.*;
+import com.restohub.adminapi.entity.SubscriptionType;
+import com.restohub.adminapi.repository.SubscriptionTypeRepository;
 import com.restohub.adminapi.service.SubscriptionService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class SubscriptionControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class SubscriptionControllerTest extends BaseControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private SubscriptionService subscriptionService;
 
-    @InjectMocks
-    private SubscriptionController subscriptionController;
+    @MockBean
+    private SubscriptionTypeRepository subscriptionTypeRepository;
 
-    private MockMvc mockMvc;
+    @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        // Создаем фиктивный валидатор, который ничего не делает
-        org.springframework.validation.Validator noOpValidator = new org.springframework.validation.Validator() {
-            @Override
-            public boolean supports(Class<?> clazz) {
-                return false; // Не поддерживаем никакие классы, чтобы валидация не вызывалась
-            }
-            
-            @Override
-            public void validate(Object target, org.springframework.validation.Errors errors) {
-                // Ничего не делаем - валидация отключена
-            }
-        };
-        
-        mockMvc = MockMvcBuilders.standaloneSetup(subscriptionController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(noOpValidator)
-                .build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-    }
 
     // ========== GET /r/{id}/subscription - подписка ресторана ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetRestaurantSubscription_Success() throws Exception {
         // Arrange
         SubscriptionResponse response = new SubscriptionResponse();
@@ -78,7 +59,7 @@ class SubscriptionControllerTest {
         response.setCreatedAt(Instant.now());
         response.setUpdatedAt(Instant.now());
 
-        when(subscriptionService.getRestaurantSubscription(1L)).thenReturn(response);
+        doReturn(response).when(subscriptionService).getRestaurantSubscription(1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/subscription"))
@@ -91,10 +72,10 @@ class SubscriptionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetRestaurantSubscription_NotFound() throws Exception {
         // Arrange
-        when(subscriptionService.getRestaurantSubscription(999L))
-                .thenThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND"));
+        doThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND")).when(subscriptionService).getRestaurantSubscription(999L);
 
         // Act & Assert
         mockMvc.perform(get("/r/999/subscription"))
@@ -106,12 +87,14 @@ class SubscriptionControllerTest {
     // ========== PUT /r/{id}/subscription - обновление подписки ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateRestaurantSubscription_Success() throws Exception {
         // Arrange
         UpdateSubscriptionRequest request = new UpdateSubscriptionRequest();
         request.setSubscriptionTypeId(2L);
         request.setStartDate(LocalDate.of(2024, 2, 1));
-        request.setEndDate(LocalDate.of(2024, 12, 31));
+        // Используем дату в будущем для валидации @Future
+        request.setEndDate(LocalDate.now().plusYears(1));
 
         SubscriptionResponse response = new SubscriptionResponse();
         response.setId(1L);
@@ -122,12 +105,19 @@ class SubscriptionControllerTest {
         subscriptionTypeInfo.setName("Премиум");
         response.setSubscriptionType(subscriptionTypeInfo);
         response.setStartDate(LocalDate.of(2024, 2, 1));
-        response.setEndDate(LocalDate.of(2024, 12, 31));
+        response.setEndDate(LocalDate.now().plusYears(1));
         response.setIsActive(true);
         response.setUpdatedAt(Instant.now());
 
-        when(subscriptionService.updateRestaurantSubscription(eq(1L), any(UpdateSubscriptionRequest.class)))
-                .thenReturn(response);
+        // Настраиваем мок репозитория для валидатора ValidSubscriptionTypeId
+        SubscriptionType subscriptionType = new SubscriptionType();
+        subscriptionType.setId(2L);
+        subscriptionType.setCode("PREMIUM");
+        subscriptionType.setName("Премиум");
+        subscriptionType.setIsActive(true);
+        doReturn(Optional.of(subscriptionType)).when(subscriptionTypeRepository).findByIdAndIsActiveTrue(2L);
+
+        doReturn(response).when(subscriptionService).updateRestaurantSubscription(eq(1L), any(UpdateSubscriptionRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/r/1/subscription")
@@ -141,13 +131,21 @@ class SubscriptionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUpdateRestaurantSubscription_NotFound() throws Exception {
         // Arrange
         UpdateSubscriptionRequest request = new UpdateSubscriptionRequest();
         request.setSubscriptionTypeId(2L);
 
-        when(subscriptionService.updateRestaurantSubscription(eq(999L), any(UpdateSubscriptionRequest.class)))
-                .thenThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND"));
+        // Настраиваем мок репозитория для валидатора ValidSubscriptionTypeId
+        SubscriptionType subscriptionType = new SubscriptionType();
+        subscriptionType.setId(2L);
+        subscriptionType.setCode("PREMIUM");
+        subscriptionType.setName("Премиум");
+        subscriptionType.setIsActive(true);
+        doReturn(Optional.of(subscriptionType)).when(subscriptionTypeRepository).findByIdAndIsActiveTrue(2L);
+
+        doThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND")).when(subscriptionService).updateRestaurantSubscription(eq(999L), any(UpdateSubscriptionRequest.class));
 
         // Act & Assert
         mockMvc.perform(put("/r/999/subscription")
@@ -161,6 +159,7 @@ class SubscriptionControllerTest {
     // ========== GET /subscription - список всех подписок ==========
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllSubscriptions_Success() throws Exception {
         // Arrange
         SubscriptionListItemResponse item1 = new SubscriptionListItemResponse();
@@ -179,8 +178,7 @@ class SubscriptionControllerTest {
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 50, 0, false);
         PaginationResponse<List<SubscriptionListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(subscriptionService.getAllSubscriptions(eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), eq("endDate"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(subscriptionService).getAllSubscriptions(eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), eq("endDate"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/subscription")
@@ -196,14 +194,14 @@ class SubscriptionControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllSubscriptions_WithFilters() throws Exception {
         // Arrange
         List<SubscriptionListItemResponse> items = Arrays.asList();
         PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(0L, 50, 0, false);
         PaginationResponse<List<SubscriptionListItemResponse>> response = new PaginationResponse<>(items, pagination);
 
-        when(subscriptionService.getAllSubscriptions(eq(50), eq(0), eq(true), eq(1L), eq(1L), eq(true), eq("endDate"), eq("asc")))
-                .thenReturn(response);
+        doReturn(response).when(subscriptionService).getAllSubscriptions(eq(50), eq(0), eq(true), eq(1L), eq(1L), eq(true), eq("endDate"), eq("asc"));
 
         // Act & Assert
         mockMvc.perform(get("/subscription")

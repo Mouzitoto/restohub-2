@@ -1,15 +1,14 @@
 package com.restohub.adminapi.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.ClientService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -20,28 +19,22 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class ClientControllerTest {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class ClientControllerTest extends BaseControllerTest {
 
-    @Mock
-    private ClientService clientService;
-
-    @InjectMocks
-    private ClientController clientController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(clientController)
-                .setControllerAdvice(new TestExceptionHandler())
-                .setValidator(null)
-                .build();
-    }
+    @MockBean
+    private ClientService clientService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // ========== GET /r/{id}/client - список клиентов ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClients_Success() throws Exception {
         // Arrange
         ClientListItemResponse item1 = new ClientListItemResponse();
@@ -76,6 +69,7 @@ class ClientControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClients_WithSearch() throws Exception {
         // Arrange
         List<ClientListItemResponse> items = Arrays.asList();
@@ -98,21 +92,23 @@ class ClientControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClients_RestaurantNotFound() throws Exception {
         // Arrange
-        when(clientService.getClients(eq(999L), anyInt(), anyInt(), isNull(), anyString(), anyString()))
+        when(clientService.getClients(eq(999L), eq(50), eq(0), isNull(), eq("lastBookingDate"), eq("desc")))
                 .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
 
         // Act & Assert
         mockMvc.perform(get("/r/999/client"))
                 .andExpect(status().isNotFound());
 
-        verify(clientService, times(1)).getClients(eq(999L), anyInt(), anyInt(), isNull(), anyString(), anyString());
+        verify(clientService, times(1)).getClients(eq(999L), eq(50), eq(0), isNull(), eq("lastBookingDate"), eq("desc"));
     }
 
     // ========== GET /r/{id}/client/{clientId} - детали клиента ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClient_Success() throws Exception {
         // Arrange
         ClientResponse response = new ClientResponse();
@@ -134,7 +130,7 @@ class ClientControllerTest {
         statistics.setAveragePreOrderAmount(new java.math.BigDecimal("2500.00"));
         response.setStatistics(statistics);
 
-        when(clientService.getClient(1L, 1L)).thenReturn(response);
+        doReturn(response).when(clientService).getClient(1L, 1L);
 
         // Act & Assert
         mockMvc.perform(get("/r/1/client/1"))
@@ -148,6 +144,7 @@ class ClientControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClient_NotFound() throws Exception {
         // Arrange
         when(clientService.getClient(1L, 999L))
@@ -163,6 +160,7 @@ class ClientControllerTest {
     // ========== GET /r/{id}/client/{clientId}/booking - бронирования клиента ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClientBookings_Success() throws Exception {
         // Arrange
         BookingListItemResponse item1 = new BookingListItemResponse();
@@ -205,6 +203,7 @@ class ClientControllerTest {
     // ========== GET /r/{id}/client/{clientId}/pre-order - предзаказы клиента ==========
 
     @Test
+    @WithMockUser(roles = "MANAGER")
     void testGetClientPreOrders_Success() throws Exception {
         // Arrange
         PreOrderListItemResponse item1 = new PreOrderListItemResponse();

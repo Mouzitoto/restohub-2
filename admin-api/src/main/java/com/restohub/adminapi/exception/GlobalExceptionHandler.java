@@ -50,6 +50,7 @@ public class GlobalExceptionHandler {
                    "FILE_TOO_LARGE".equals(exceptionName) ||
                    "INVALID_FILE_TYPE".equals(exceptionName) ||
                    "INVALID_IMAGE".equals(exceptionName) ||
+                   "INVALID_IMAGE_TYPE".equals(exceptionName) ||
                    "IMAGE_UPLOAD_ERROR".equals(exceptionName) ||
                    "RESTAURANT_IN_USE".equals(exceptionName) ||
                    "IMAGE_IN_USE".equals(exceptionName) ||
@@ -74,7 +75,9 @@ public class GlobalExceptionHandler {
                    "MANAGER_MUST_HAVE_RESTAURANTS".equals(exceptionName) ||
                    "CANNOT_MODIFY_SELF".equals(exceptionName) ||
                    "CANNOT_DELETE_SELF".equals(exceptionName) ||
-                   "CANNOT_DEACTIVATE_SELF".equals(exceptionName)) {
+                   "CANNOT_DEACTIVATE_SELF".equals(exceptionName) ||
+                   "BOOKING_ALREADY_CANCELLED_OR_REJECTED".equals(exceptionName) ||
+                   "PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED".equals(exceptionName)) {
             status = HttpStatus.BAD_REQUEST;
         } else if ("USER_NOT_FOUND".equals(exceptionName) ||
                    "RESTAURANT_NOT_FOUND".equals(exceptionName) ||
@@ -85,11 +88,14 @@ public class GlobalExceptionHandler {
                    "ROOM_NOT_FOUND".equals(exceptionName) ||
                    "TABLE_NOT_FOUND".equals(exceptionName) ||
                    "BOOKING_STATUS_NOT_FOUND".equals(exceptionName) ||
+                   "BOOKING_NOT_FOUND".equals(exceptionName) ||
                    "SUBSCRIPTION_TYPE_NOT_FOUND".equals(exceptionName) ||
+                   "SUBSCRIPTION_NOT_FOUND".equals(exceptionName) ||
                    "PROMOTION_NOT_FOUND".equals(exceptionName) ||
                    "PROMOTION_TYPE_NOT_FOUND".equals(exceptionName) ||
                    "CLIENT_NOT_FOUND".equals(exceptionName) ||
-                   "ROLE_NOT_FOUND".equals(exceptionName)) {
+                   "ROLE_NOT_FOUND".equals(exceptionName) ||
+                   "PRE_ORDER_NOT_FOUND".equals(exceptionName)) {
             status = HttpStatus.NOT_FOUND;
         }
         
@@ -184,6 +190,7 @@ public class GlobalExceptionHandler {
             case "FILE_TOO_LARGE" -> "Файл слишком большой";
             case "INVALID_FILE_TYPE" -> "Неверный тип файла";
             case "INVALID_IMAGE" -> "Неверный формат изображения";
+            case "INVALID_IMAGE_TYPE" -> "Неверный тип изображения. Допустимые значения: logo, background";
             case "IMAGE_UPLOAD_ERROR" -> "Ошибка при загрузке изображения";
             case "CATEGORY_NOT_FOUND" -> "Категория не найдена";
             case "CATEGORY_NAME_EXISTS" -> "Категория с таким названием уже существует";
@@ -201,6 +208,7 @@ public class GlobalExceptionHandler {
             case "BOOKING_STATUS_CODE_EXISTS" -> "Статус с таким кодом уже существует";
             case "BOOKING_STATUS_IN_USE" -> "Статус используется и не может быть удален";
             case "SUBSCRIPTION_TYPE_NOT_FOUND" -> "Тип подписки не найден";
+            case "SUBSCRIPTION_NOT_FOUND" -> "Подписка не найдена";
             case "INVALID_DATE_RANGE" -> "Неверный диапазон дат: дата окончания должна быть после даты начала";
             case "PROMOTION_NOT_FOUND" -> "Промо-событие не найдено";
             case "PROMOTION_TYPE_NOT_FOUND" -> "Тип промо-события не найден";
@@ -210,6 +218,10 @@ public class GlobalExceptionHandler {
             case "INVALID_RECURRENCE_DAY_OF_WEEK" -> "Неверный день недели. Должен быть от 1 до 7";
             case "RECURRENCE_FIELDS_NOT_ALLOWED" -> "Поля повторения не допускаются для неповторяющихся событий";
             case "CLIENT_NOT_FOUND" -> "Клиент не найден";
+            case "BOOKING_NOT_FOUND" -> "Бронирование не найдено";
+            case "PRE_ORDER_NOT_FOUND" -> "Предзаказ не найден";
+            case "BOOKING_ALREADY_CANCELLED_OR_REJECTED" -> "Бронирование уже отменено или отклонено";
+            case "PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED" -> "Предзаказ уже отменен или отклонен";
             case "UNSUPPORTED_EXPORT_FORMAT" -> "Неподдерживаемый формат экспорта";
             case "INVALID_EXPORT_TYPE" -> "Неверный тип данных для экспорта";
             case "EXPORT_ERROR" -> "Ошибка при экспорте данных";
