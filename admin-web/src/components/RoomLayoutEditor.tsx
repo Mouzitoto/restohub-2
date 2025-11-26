@@ -411,7 +411,7 @@ export default function RoomLayoutEditor({
         const moveDistance = Math.sqrt(
           Math.pow(e.clientX - dragStartPos.x, 2) + Math.pow(e.clientY - dragStartPos.y, 2)
         )
-        if (moveDistance <= 5) {
+        if (moveDistance <= 5 && imageRef.current) {
           // Находим стол по позиции клика (используем visualTables)
           const rect = imageRef.current.getBoundingClientRect()
           const clickX = ((dragStartPos.x - rect.left) / rect.width) * 100
@@ -434,6 +434,13 @@ export default function RoomLayoutEditor({
           }
         }
       }
+      setDraggingTable(null)
+      setDragStartTime(null)
+      setDragStartPos(null)
+      return
+    }
+    
+    if (!imageRef.current) {
       setDraggingTable(null)
       setDragStartTime(null)
       setDragStartPos(null)
