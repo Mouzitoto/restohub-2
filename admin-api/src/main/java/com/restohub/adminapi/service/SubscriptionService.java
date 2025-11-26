@@ -1,12 +1,8 @@
 package com.restohub.adminapi.service;
 
 import com.restohub.adminapi.dto.*;
-import com.restohub.adminapi.entity.Restaurant;
-import com.restohub.adminapi.entity.RestaurantSubscription;
-import com.restohub.adminapi.entity.SubscriptionType;
-import com.restohub.adminapi.repository.RestaurantRepository;
-import com.restohub.adminapi.repository.RestaurantSubscriptionRepository;
-import com.restohub.adminapi.repository.SubscriptionTypeRepository;
+import com.restohub.adminapi.entity.*;
+import com.restohub.adminapi.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,15 +23,18 @@ public class SubscriptionService {
     private final RestaurantSubscriptionRepository subscriptionRepository;
     private final RestaurantRepository restaurantRepository;
     private final SubscriptionTypeRepository subscriptionTypeRepository;
+    private final SubscriptionPaymentRepository paymentRepository;
     
     @Autowired
     public SubscriptionService(
             RestaurantSubscriptionRepository subscriptionRepository,
             RestaurantRepository restaurantRepository,
-            SubscriptionTypeRepository subscriptionTypeRepository) {
+            SubscriptionTypeRepository subscriptionTypeRepository,
+            SubscriptionPaymentRepository paymentRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.restaurantRepository = restaurantRepository;
         this.subscriptionTypeRepository = subscriptionTypeRepository;
+        this.paymentRepository = paymentRepository;
     }
     
     public SubscriptionResponse getRestaurantSubscription(Long restaurantId) {
@@ -63,6 +62,84 @@ public class SubscriptionService {
         }
         
         return toResponse(subscription);
+    }
+    
+    @Transactional
+    public SubscriptionResponse createSubscription(Long restaurantId, CreateSubscriptionRequest request) {
+        // Проверка существования ресторана
+        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        // Валидация типа подписки
+        SubscriptionType subscriptionType = subscriptionTypeRepository
+                .findByIdAndIsActiveTrue(request.getSubscriptionTypeId())
+                .orElseThrow(() -> new RuntimeException("SUBSCRIPTION_TYPE_NOT_FOUND"));
+        
+        // Создание подписки в статусе DRAFT
+        RestaurantSubscription subscription = new RestaurantSubscription();
+        subscription.setRestaurant(restaurant);
+        subscription.setSubscriptionType(subscriptionType);
+        subscription.setStatus(SubscriptionStatus.DRAFT);
+        subscription.setIsActive(false);
+        subscription.setPaymentReference(generatePaymentReference(restaurantId));
+        // startDate и endDate остаются null до активации
+        
+        subscription = subscriptionRepository.save(subscription);
+        
+        return toResponse(subscription);
+    }
+    
+    @Transactional
+    public SubscriptionResponse activateSubscription(ActivateSubscriptionRequest request) {
+        // Поиск подписки по paymentReference
+        RestaurantSubscription subscription = subscriptionRepository
+                .findByPaymentReference(request.getPaymentReference())
+                .orElseThrow(() -> new RuntimeException("SUBSCRIPTION_NOT_FOUND"));
+        
+        // Проверка идемпотентности через externalTransactionId (проверяем ПЕРЕД проверкой статуса)
+        if (paymentRepository.findByExternalTransactionId(request.getExternalTransactionId()).isPresent()) {
+            // Платеж уже обработан, возвращаем существующую подписку
+            return toResponse(subscription);
+        }
+        
+        // Проверка статуса (должен быть DRAFT или PENDING)
+        if (subscription.getStatus() != SubscriptionStatus.DRAFT && 
+            subscription.getStatus() != SubscriptionStatus.PENDING) {
+            throw new RuntimeException("INVALID_SUBSCRIPTION_STATUS");
+        }
+        
+        // Обновление статуса на ACTIVATED
+        subscription.setStatus(SubscriptionStatus.ACTIVATED);
+        subscription.setIsActive(true);
+        subscription.setExternalTransactionId(request.getExternalTransactionId());
+        
+        // Установка дат: startDate = paymentDate, endDate = paymentDate + 1 месяц
+        LocalDate paymentDate = request.getPaymentDate().toLocalDate();
+        subscription.setStartDate(paymentDate);
+        subscription.setEndDate(paymentDate.plusMonths(1));
+        
+        subscription = subscriptionRepository.save(subscription);
+        
+        // Сохранение записи в subscription_payments
+        SubscriptionPayment payment = new SubscriptionPayment();
+        payment.setSubscription(subscription);
+        payment.setAmount(request.getAmount() != null ? request.getAmount() : subscription.getSubscriptionType().getPrice());
+        payment.setPaymentDate(request.getPaymentDate());
+        payment.setExternalTransactionId(request.getExternalTransactionId());
+        payment.setPaymentReference(request.getPaymentReference());
+        payment.setStatus(PaymentStatus.SUCCESS);
+        paymentRepository.save(payment);
+        
+        return toResponse(subscription);
+    }
+    
+    private String generatePaymentReference(Long restaurantId) {
+        // Получаем все подписки для данного ресторана
+        List<RestaurantSubscription> existingSubscriptions = subscriptionRepository.findByRestaurantId(restaurantId);
+        
+        // Генерируем новый paymentReference с sequence_number = количество существующих подписок + 1
+        int nextSequence = existingSubscriptions.size() + 1;
+        return String.format("SUB-%d-%d", restaurantId, nextSequence);
     }
     
     @Transactional
@@ -190,6 +267,9 @@ public class SubscriptionService {
             response.setSubscriptionType(typeInfo);
         }
         
+        response.setStatus(subscription.getStatus() != null ? subscription.getStatus().getValue() : null);
+        response.setPaymentReference(subscription.getPaymentReference());
+        response.setExternalTransactionId(subscription.getExternalTransactionId());
         response.setStartDate(subscription.getStartDate());
         response.setEndDate(subscription.getEndDate());
         response.setIsActive(subscription.getIsActive());
@@ -226,6 +306,8 @@ public class SubscriptionService {
             response.setSubscriptionType(typeInfo);
         }
         
+        response.setStatus(subscription.getStatus() != null ? subscription.getStatus().getValue() : null);
+        response.setPaymentReference(subscription.getPaymentReference());
         response.setStartDate(subscription.getStartDate());
         response.setEndDate(subscription.getEndDate());
         response.setIsActive(subscription.getIsActive());
@@ -242,6 +324,29 @@ public class SubscriptionService {
         }
         
         return response;
+    }
+    
+    public List<SubscriptionListItemResponse> getRestaurantSubscriptions(Long restaurantId) {
+        // Проверка существования ресторана
+        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        // Получение всех подписок ресторана, отсортированных по дате создания (новые первые)
+        List<RestaurantSubscription> subscriptions = subscriptionRepository.findByRestaurantId(restaurantId);
+        
+        return subscriptions.stream()
+                .sorted((s1, s2) -> {
+                    // Сортируем по дате создания (новые первые), если даты равны - по ID
+                    if (s1.getCreatedAt() != null && s2.getCreatedAt() != null) {
+                        int dateCompare = s2.getCreatedAt().compareTo(s1.getCreatedAt());
+                        if (dateCompare != 0) {
+                            return dateCompare;
+                        }
+                    }
+                    return s2.getId().compareTo(s1.getId());
+                })
+                .map(this::toListItemResponse)
+                .collect(Collectors.toList());
     }
     
     private Sort buildSort(String sortBy, String sortOrder) {
