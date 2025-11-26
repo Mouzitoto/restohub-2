@@ -1,5 +1,7 @@
 package com.restohub.adminapi.config;
 
+import com.restohub.adminapi.service.TableService;
+import com.restohub.adminapi.util.TablePositionUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -33,6 +35,18 @@ public class ControllerTestConfiguration {
      */
     @MockBean
     public RestaurantAccessInterceptor restaurantAccessInterceptor;
+    
+    /**
+     * Моки для зависимостей RoomService, чтобы избежать проблем с загрузкой контекста
+     * в тестах, которые не используют RoomService напрямую.
+     * Эти моки нужны, так как RoomService зависит от TableService и TablePositionUtils,
+     * и Spring пытается создать RoomService даже в тестах, которые его не используют.
+     */
+    @MockBean
+    public TableService tableService;
+    
+    @MockBean
+    public TablePositionUtils tablePositionUtils;
     
     @PostConstruct
     public void setupMocks() throws Exception {

@@ -4,11 +4,13 @@ import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.entity.Floor;
 import com.restohub.adminapi.entity.Image;
 import com.restohub.adminapi.entity.Room;
+import com.restohub.adminapi.entity.RestaurantTable;
 import com.restohub.adminapi.repository.FloorRepository;
 import com.restohub.adminapi.repository.ImageRepository;
 import com.restohub.adminapi.repository.RestaurantRepository;
 import com.restohub.adminapi.repository.RoomRepository;
 import com.restohub.adminapi.repository.TableRepository;
+import com.restohub.adminapi.util.TablePositionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,8 @@ public class RoomService {
     private final ImageRepository imageRepository;
     private final TableRepository tableRepository;
     private final ImageService imageService;
+    private final TableService tableService;
+    private final TablePositionUtils tablePositionUtils;
     
     @Autowired
     public RoomService(
@@ -45,13 +49,17 @@ public class RoomService {
             FloorRepository floorRepository,
             ImageRepository imageRepository,
             TableRepository tableRepository,
-            ImageService imageService) {
+            ImageService imageService,
+            TableService tableService,
+            TablePositionUtils tablePositionUtils) {
         this.roomRepository = roomRepository;
         this.restaurantRepository = restaurantRepository;
         this.floorRepository = floorRepository;
         this.imageRepository = imageRepository;
         this.tableRepository = tableRepository;
         this.imageService = imageService;
+        this.tableService = tableService;
+        this.tablePositionUtils = tablePositionUtils;
     }
     
     @Transactional
@@ -161,12 +169,19 @@ public class RoomService {
             room.setIsOutdoor(request.getIsOutdoor());
         }
         if (request.getImageId() != null) {
+            Image oldImage = room.getImage();
             if (request.getImageId() == 0) {
                 room.setImage(null);
             } else {
                 Image image = imageRepository.findByIdAndIsActiveTrue(request.getImageId())
                         .orElseThrow(() -> new RuntimeException("IMAGE_NOT_FOUND"));
                 room.setImage(image);
+            }
+            // Если изображение изменилось, очищаем координаты столов
+            Long oldImageId = oldImage != null ? oldImage.getId() : null;
+            Long newImageId = room.getImage() != null ? room.getImage().getId() : null;
+            if ((oldImageId == null && newImageId != null) || (oldImageId != null && !oldImageId.equals(newImageId))) {
+                tableService.clearTablePositionsForRoom(roomId);
             }
         }
         
@@ -241,6 +256,9 @@ public class RoomService {
         
         room = roomRepository.save(room);
         
+        // Очищаем координаты столов при замене изображения
+        tableService.clearTablePositionsForRoom(roomId);
+        
         // Мягко удаляем старое изображение, если оно было и больше не используется
         if (oldImage != null) {
             try {
@@ -263,6 +281,9 @@ public class RoomService {
         room.setImage(null);
         
         room = roomRepository.save(room);
+        
+        // Очищаем координаты столов при удалении изображения
+        tableService.clearTablePositionsForRoom(roomId);
         
         // Мягко удаляем изображение, если оно было
         if (oldImage != null) {
@@ -290,6 +311,65 @@ public class RoomService {
             default:
                 return Sort.by(Sort.Direction.ASC, "name");
         }
+    }
+    
+    public RoomLayoutResponse getRoomLayout(Long restaurantId, Long roomId) {
+        Room room = roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("ROOM_NOT_FOUND"));
+        
+        RoomResponse roomResponse = toResponse(room);
+        
+        // Получаем все столы зала
+        List<RestaurantTable> tables = tableRepository.findByRoomIdAndIsActiveTrue(roomId);
+        List<TableResponse> tableResponses = tables.stream()
+                .map(table -> tableService.getTable(restaurantId, table.getId()))
+                .collect(Collectors.toList());
+        
+        // Формируем URL изображения
+        String imageUrl = null;
+        if (room.getImage() != null) {
+            imageUrl = "/admin-api/image?id=" + room.getImage().getId() + "&isPreview=false";
+        }
+        
+        RoomLayoutResponse response = new RoomLayoutResponse();
+        response.setRoom(roomResponse);
+        response.setTables(tableResponses);
+        response.setImageUrl(imageUrl);
+        
+        return response;
+    }
+    
+    @Transactional
+    public List<TableResponse> updateTablePositions(Long restaurantId, Long roomId, List<UpdateTablePositionRequest> requests) {
+        // Проверка принадлежности зала к ресторану
+        Room room = roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("ROOM_NOT_FOUND"));
+        
+        // Валидация координат и проверка пересечений
+        tablePositionUtils.checkRectangleIntersections(requests);
+        
+        // Обновляем позиции столов
+        List<TableResponse> updatedTables = new java.util.ArrayList<>();
+        for (UpdateTablePositionRequest request : requests) {
+            RestaurantTable table = tableRepository.findByIdAndRestaurantIdAndIsActiveTrue(
+                    request.getTableId(), restaurantId)
+                    .orElseThrow(() -> new RuntimeException("TABLE_NOT_FOUND"));
+            
+            // Проверяем, что стол принадлежит указанному залу
+            if (!table.getRoom().getId().equals(roomId)) {
+                throw new RuntimeException("TABLE_NOT_IN_ROOM");
+            }
+            
+            table.setPositionX1(request.getPositionX1());
+            table.setPositionY1(request.getPositionY1());
+            table.setPositionX2(request.getPositionX2());
+            table.setPositionY2(request.getPositionY2());
+            
+            table = tableRepository.save(table);
+            updatedTables.add(tableService.getTable(restaurantId, table.getId()));
+        }
+        
+        return updatedTables;
     }
 }
 

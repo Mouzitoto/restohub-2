@@ -221,73 +221,128 @@ export default function MenuItemsPage() {
         </button>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Фото</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Название</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Ингредиенты</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Цена</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Скидка</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Категория</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Острота</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Сахар</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Порядок</th>
               <th style={{ padding: '1rem' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id} style={{ borderTop: '1px solid #eee' }}>
-                <td style={{ padding: '1rem' }}>
-                  <ImagePreview imageId={item.imageId ?? null} size="small" />
-                </td>
-                <td style={{ padding: '1rem' }}>{item.name}</td>
-                <td style={{ padding: '1rem' }}>
-                  {item.discountPercent > 0 ? (
-                    <div>
-                      <span style={{ textDecoration: 'line-through', color: '#999' }}>
-                        {item.price.toFixed(2)} ₽
-                      </span>
-                      <span style={{ color: '#f44336', marginLeft: '0.5rem', fontWeight: 'bold' }}>
-                        {finalPrice.toFixed(2)} ₽
-                      </span>
+            {items.map((item) => {
+              const finalPrice = item.price * (1 - item.discountPercent / 100)
+              return (
+                <tr key={item.id} style={{ borderTop: '1px solid #eee' }}>
+                  <td style={{ padding: '1rem' }}>
+                    <ImagePreview imageId={item.imageId ?? null} size="small" />
+                  </td>
+                  <td style={{ padding: '1rem' }}>{item.name}</td>
+                  <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                    <div 
+                      style={{ 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={item.description || ''}
+                    >
+                      {item.description || '-'}
                     </div>
-                  ) : (
-                    <span>{item.price.toFixed(2)} ₽</span>
-                  )}
-                </td>
-                <td style={{ padding: '1rem' }}>
-                  {categories.find((c) => c.id === item.menuCategoryId)?.name || '-'}
-                </td>
-                <td style={{ padding: '1rem' }}>
-                  <button
-                    onClick={() => {
-                      setEditingItem(item)
-                      setImageId(item.imageId || null)
-                      setImageFile(null)
-                      reset({
-                        name: item.name,
-                        description: item.description || '',
-                        ingredients: item.ingredients || '',
-                        price: item.price,
-                        menuCategoryId: item.menuCategoryId,
-                        discountPercent: item.discountPercent,
-                        spicinessLevel: item.spicinessLevel,
-                        hasSugar: item.hasSugar,
-                        displayOrder: item.displayOrder,
-                      })
-                      setIsModalOpen(true)
-                    }}
-                    style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
-                  >
-                    Редактировать
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    style={{ padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#f44336' }}
-                  >
-                    Удалить
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                    <div 
+                      style={{ 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={item.ingredients || ''}
+                    >
+                      {item.ingredients || '-'}
+                    </div>
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {item.discountPercent > 0 ? (
+                      <div>
+                        <span style={{ textDecoration: 'line-through', color: '#999' }}>
+                          {item.price.toFixed(2)} ₽
+                        </span>
+                        <span style={{ color: '#f44336', marginLeft: '0.5rem', fontWeight: 'bold' }}>
+                          {finalPrice.toFixed(2)} ₽
+                        </span>
+                      </div>
+                    ) : (
+                      <span>{item.price.toFixed(2)} ₽</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {item.discountPercent > 0 ? (
+                      <span style={{ color: '#f44336', fontWeight: 'bold' }}>
+                        {item.discountPercent}%
+                      </span>
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {categories.find((c) => c.id === item.menuCategoryId)?.name || '-'}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {item.spicinessLevel > 0 ? (
+                      <span>{item.spicinessLevel}/5</span>
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {item.hasSugar ? 'Да' : 'Нет'}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    {item.displayOrder}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    <button
+                      onClick={() => {
+                        setEditingItem(item)
+                        setImageId(item.imageId || null)
+                        setImageFile(null)
+                        reset({
+                          name: item.name,
+                          description: item.description || '',
+                          ingredients: item.ingredients || '',
+                          price: item.price,
+                          menuCategoryId: item.menuCategoryId,
+                          discountPercent: item.discountPercent,
+                          spicinessLevel: item.spicinessLevel,
+                          hasSugar: item.hasSugar,
+                          displayOrder: item.displayOrder,
+                        })
+                        setIsModalOpen(true)
+                      }}
+                      style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
+                    >
+                      Редактировать
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      style={{ padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#f44336' }}
+                    >
+                      Удалить
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

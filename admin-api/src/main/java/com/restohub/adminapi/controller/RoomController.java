@@ -2,9 +2,12 @@ package com.restohub.adminapi.controller;
 
 import com.restohub.adminapi.dto.CreateRoomRequest;
 import com.restohub.adminapi.dto.RoomListItemResponse;
+import com.restohub.adminapi.dto.RoomLayoutResponse;
 import com.restohub.adminapi.dto.RoomResponse;
 import com.restohub.adminapi.dto.PaginationResponse;
 import com.restohub.adminapi.dto.UpdateRoomRequest;
+import com.restohub.adminapi.dto.UpdateTablePositionRequest;
+import com.restohub.adminapi.dto.TableResponse;
 import com.restohub.adminapi.service.RoomService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,6 +96,23 @@ public class RoomController {
             @PathVariable("id") Long restaurantId,
             @PathVariable("roomId") Long roomId) {
         RoomResponse response = roomService.deleteRoomImage(restaurantId, roomId);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/{roomId}/layout")
+    public ResponseEntity<RoomLayoutResponse> getRoomLayout(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("roomId") Long roomId) {
+        RoomLayoutResponse response = roomService.getRoomLayout(restaurantId, roomId);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PutMapping("/{roomId}/tables/positions")
+    public ResponseEntity<List<TableResponse>> updateTablePositions(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("roomId") Long roomId,
+            @Valid @RequestBody List<UpdateTablePositionRequest> requests) {
+        List<TableResponse> response = roomService.updateTablePositions(restaurantId, roomId, requests);
         return ResponseEntity.ok(response);
     }
 }

@@ -35,6 +35,11 @@ spring:
           starttls:
             enable: false
     from: test@restohub.com
+  
+  # Отключаем scheduling для тестов
+  task:
+    scheduling:
+      enabled: false
 
 server:
   port: 0  # Случайный порт для тестов
@@ -72,4 +77,19 @@ jwt:
 cors:
   allowed-origin: http://localhost:3001
   client-web-url: http://localhost:3000
+
+# Настройки для тестов
+api:
+  1c:
+    enabled: false  # Отключаем ApiKeyAuthenticationFilter в тестах
+    key: test-api-key
+
+company:
+  name: Test Company
+  bin: 123456789012
+  address: Test Address
+  bank: Test Bank
+  bik: 123456789
+  iik: 987654321
+  kbe: 17
 

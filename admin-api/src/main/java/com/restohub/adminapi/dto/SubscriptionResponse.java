@@ -10,6 +10,9 @@ public class SubscriptionResponse {
     private Long id;
     private Long restaurantId;
     private SubscriptionTypeInfo subscriptionType;
+    private String status;
+    private String paymentReference;
+    private String externalTransactionId;
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isActive;

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Entity
 @jakarta.persistence.Table(name = "tables", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"room_id", "table_number"})
@@ -38,5 +40,17 @@ public class RestaurantTable extends BaseEntity {
     
     @Column(name = "deposit_note", columnDefinition = "TEXT")
     private String depositNote;
+    
+    @Column(name = "position_x1", precision = 5, scale = 2)
+    private BigDecimal positionX1;
+    
+    @Column(name = "position_y1", precision = 5, scale = 2)
+    private BigDecimal positionY1;
+    
+    @Column(name = "position_x2", precision = 5, scale = 2)
+    private BigDecimal positionX2;
+    
+    @Column(name = "position_y2", precision = 5, scale = 2)
+    private BigDecimal positionY2;
 }
 

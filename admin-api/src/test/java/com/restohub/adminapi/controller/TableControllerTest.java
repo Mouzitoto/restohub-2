@@ -3,16 +3,14 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.TableService;
+import com.restohub.adminapi.util.TablePositionUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,7 +30,7 @@ class TableControllerTest extends BaseControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Autowired
     private TableService tableService;
 
     @Autowired
@@ -418,6 +416,33 @@ class TableControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(tableService, times(1)).deleteTableImage(1L, 999L);
+    }
+
+    // ========== DELETE /r/{id}/table/{tableId}/position - удаление координат стола ==========
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testDeleteTablePosition_Success() throws Exception {
+        doNothing().when(tableService).clearTablePosition(1L, 1L);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/table/1/position"))
+                .andExpect(status().isNoContent());
+
+        verify(tableService, times(1)).clearTablePosition(1L, 1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testDeleteTablePosition_NotFound() throws Exception {
+        doThrow(new RuntimeException("TABLE_NOT_FOUND"))
+                .when(tableService).clearTablePosition(1L, 999L);
+
+        // Act & Assert
+        mockMvc.perform(delete("/r/1/table/999/position"))
+                .andExpect(status().isNotFound());
+
+        verify(tableService, times(1)).clearTablePosition(1L, 999L);
     }
 }
 

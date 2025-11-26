@@ -2,6 +2,7 @@ package com.restohub.adminapi.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Data
@@ -19,5 +20,9 @@ public class TableResponse {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
+    private BigDecimal positionX1;
+    private BigDecimal positionY1;
+    private BigDecimal positionX2;
+    private BigDecimal positionY2;
 }
 

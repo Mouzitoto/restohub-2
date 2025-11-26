@@ -6,6 +6,8 @@ import com.restohub.adminapi.validation.ValidRoomId;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class CreateTableRequest {
     
@@ -34,5 +36,21 @@ public class CreateTableRequest {
     
     @Size(max = 1000, message = "Примечание о депозите не должно превышать 1000 символов")
     private String depositNote;
+    
+    @DecimalMin(value = "0.0", message = "Координата X1 должна быть от 0 до 100")
+    @DecimalMax(value = "100.0", message = "Координата X1 должна быть от 0 до 100")
+    private BigDecimal positionX1;
+    
+    @DecimalMin(value = "0.0", message = "Координата Y1 должна быть от 0 до 100")
+    @DecimalMax(value = "100.0", message = "Координата Y1 должна быть от 0 до 100")
+    private BigDecimal positionY1;
+    
+    @DecimalMin(value = "0.0", message = "Координата X2 должна быть от 0 до 100")
+    @DecimalMax(value = "100.0", message = "Координата X2 должна быть от 0 до 100")
+    private BigDecimal positionX2;
+    
+    @DecimalMin(value = "0.0", message = "Координата Y2 должна быть от 0 до 100")
+    @DecimalMax(value = "100.0", message = "Координата Y2 должна быть от 0 до 100")
+    private BigDecimal positionY2;
 }
 

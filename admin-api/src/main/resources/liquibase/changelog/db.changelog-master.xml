@@ -10,6 +10,10 @@
     <include file="changesets/V3__insert_default_roles.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V4__email_verification.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V5__insert_menu_categories.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V6__subscription_payment_fields.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V7__insert_subscription_types.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V8__subscription_dates_constraint.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V9__table_position_coordinates.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
 

@@ -37,6 +37,9 @@ public class SecurityConfig {
     @Autowired
     private TraceIdConfig traceIdConfig;
     
+    @Autowired(required = false)
+    private ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
+    
     public SecurityConfig(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -51,10 +54,17 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login", "/auth/logout", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password").permitAll()
                         .requestMatchers("/auth/register", "/auth/verify-email", "/auth/resend-verification-code", "/auth/terms").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/subscriptions/activate").hasAnyRole("1C", "ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(traceIdConfig, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(traceIdConfig, UsernamePasswordAuthenticationFilter.class);
+        
+        // Добавляем ApiKeyAuthenticationFilter только если он существует (не в тестах)
+        if (apiKeyAuthenticationFilter != null) {
+            http.addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        }
+        
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }
@@ -77,7 +87,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigin, clientWebUrl));
+        // Используем setAllowedOriginPatterns вместо setAllowedOrigins при allowCredentials(true)
+        // Это позволяет использовать wildcards для поддержки разных портов localhost
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*",
+            "http://127.0.0.1:*"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

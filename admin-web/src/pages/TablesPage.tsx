@@ -4,6 +4,7 @@ import { apiClient } from '../services/apiClient'
 import Modal from '../components/common/Modal'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
+import RoomLayoutEditor from '../components/RoomLayoutEditor'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -30,6 +31,8 @@ export default function TablesPage() {
   const [imageId, setImageId] = useState<number | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false)
+  const [layoutEditorRoomId, setLayoutEditorRoomId] = useState<number | null>(null)
   const toast = useToast()
 
   const {
@@ -212,14 +215,17 @@ export default function TablesPage() {
         </button>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Фото</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Номер стола</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Зал</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Количество мест</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Депозит</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Примечание о депозите</th>
               <th style={{ padding: '1rem' }}>Действия</th>
             </tr>
           </thead>
@@ -234,6 +240,33 @@ export default function TablesPage() {
                   {rooms.find((r) => r.id === table.roomId)?.name || '-'}
                 </td>
                 <td style={{ padding: '1rem' }}>{table.capacity}</td>
+                <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                  <div 
+                    style={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={table.description || ''}
+                  >
+                    {table.description || '-'}
+                  </div>
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {table.depositAmount || '-'}
+                </td>
+                <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                  <div 
+                    style={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={table.depositNote || ''}
+                  >
+                    {table.depositNote || '-'}
+                  </div>
+                </td>
                 <td style={{ padding: '1rem' }}>
                   <button
                     onClick={() => {
@@ -253,6 +286,21 @@ export default function TablesPage() {
                     style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
                   >
                     Редактировать
+                  </button>
+                  <button
+                    onClick={() => {
+                      const room = rooms.find(r => r.id === table.roomId)
+                      if (room && room.imageId) {
+                        setLayoutEditorRoomId(table.roomId)
+                        setIsLayoutEditorOpen(true)
+                      } else {
+                        toast.error('У зала нет схемы. Загрузите изображение схемы в настройках зала.')
+                      }
+                    }}
+                    style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#1976d2' }}
+                    title="Разместить на схеме зала"
+                  >
+                    Разместить на схеме
                   </button>
                   <button
                     onClick={() => handleDelete(table.id)}
@@ -366,6 +414,18 @@ export default function TablesPage() {
           </div>
         </form>
       </Modal>
+
+      {isLayoutEditorOpen && layoutEditorRoomId && currentRestaurant && (
+        <RoomLayoutEditor
+          restaurantId={currentRestaurant.id}
+          roomId={layoutEditorRoomId}
+          onClose={() => {
+            setIsLayoutEditorOpen(false)
+            setLayoutEditorRoomId(null)
+            loadTables()
+          }}
+        />
+      )}
     </div>
   )
 }

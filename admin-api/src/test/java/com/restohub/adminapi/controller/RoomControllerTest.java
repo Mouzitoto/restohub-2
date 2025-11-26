@@ -3,16 +3,15 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.RoomService;
+import com.restohub.adminapi.service.TableService;
+import com.restohub.adminapi.util.TablePositionUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,6 +33,12 @@ class RoomControllerTest extends BaseControllerTest {
 
     @MockBean
     private RoomService roomService;
+
+    @Autowired
+    private TableService tableService;
+
+    @Autowired
+    private TablePositionUtils tablePositionUtils;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -366,6 +371,105 @@ class RoomControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(roomService, times(1)).deleteRoomImage(1L, 999L);
+    }
+
+    // ========== GET /r/{id}/room/{roomId}/layout - получение схемы зала ==========
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testGetRoomLayout_Success() throws Exception {
+        // Arrange
+        RoomLayoutResponse response = new RoomLayoutResponse();
+        RoomResponse roomResponse = new RoomResponse();
+        roomResponse.setId(1L);
+        roomResponse.setName("Зал 1");
+        response.setRoom(roomResponse);
+        response.setTables(Arrays.asList());
+        response.setImageUrl("/admin-api/image?id=1&isPreview=false");
+
+        doReturn(response).when(roomService).getRoomLayout(1L, 1L);
+
+        // Act & Assert
+        mockMvc.perform(get("/r/1/room/1/layout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.room.id").value(1L))
+                .andExpect(jsonPath("$.imageUrl").exists());
+
+        verify(roomService, times(1)).getRoomLayout(1L, 1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testGetRoomLayout_NotFound() throws Exception {
+        when(roomService.getRoomLayout(1L, 999L))
+                .thenThrow(new RuntimeException("ROOM_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(get("/r/1/room/999/layout"))
+                .andExpect(status().isNotFound());
+
+        verify(roomService, times(1)).getRoomLayout(1L, 999L);
+    }
+
+    // ========== PUT /r/{id}/room/{roomId}/tables/positions - обновление позиций столов ==========
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testUpdateTablePositions_Success() throws Exception {
+        // Arrange
+        UpdateTablePositionRequest request = new UpdateTablePositionRequest();
+        request.setTableId(1L);
+        request.setPositionX1(new java.math.BigDecimal("10"));
+        request.setPositionY1(new java.math.BigDecimal("10"));
+        request.setPositionX2(new java.math.BigDecimal("20"));
+        request.setPositionY2(new java.math.BigDecimal("20"));
+
+        TableResponse tableResponse = new TableResponse();
+        tableResponse.setId(1L);
+        tableResponse.setPositionX1(new java.math.BigDecimal("10"));
+        tableResponse.setPositionY1(new java.math.BigDecimal("10"));
+        tableResponse.setPositionX2(new java.math.BigDecimal("20"));
+        tableResponse.setPositionY2(new java.math.BigDecimal("20"));
+
+        List<UpdateTablePositionRequest> requests = Arrays.asList(request);
+        List<TableResponse> responses = Arrays.asList(tableResponse);
+
+        doReturn(responses).when(roomService).updateTablePositions(eq(1L), eq(1L), any());
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/room/1/tables/positions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requests)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].id").value(1L));
+
+        verify(roomService, times(1)).updateTablePositions(eq(1L), eq(1L), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testUpdateTablePositions_Intersections() throws Exception {
+        // Arrange
+        UpdateTablePositionRequest request = new UpdateTablePositionRequest();
+        request.setTableId(1L);
+        request.setPositionX1(new java.math.BigDecimal("10"));
+        request.setPositionY1(new java.math.BigDecimal("10"));
+        request.setPositionX2(new java.math.BigDecimal("20"));
+        request.setPositionY2(new java.math.BigDecimal("20"));
+
+        List<UpdateTablePositionRequest> requests = Arrays.asList(request);
+
+        when(roomService.updateTablePositions(eq(1L), eq(1L), any()))
+                .thenThrow(new RuntimeException("TABLE_POSITIONS_INTERSECT"));
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/room/1/tables/positions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requests)))
+                .andExpect(status().isBadRequest());
+
+        verify(roomService, times(1)).updateTablePositions(eq(1L), eq(1L), any());
     }
 }
 

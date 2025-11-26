@@ -1,22 +1,18 @@
 package com.restohub.adminapi.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
-import com.restohub.adminapi.entity.SubscriptionType;
-import com.restohub.adminapi.repository.SubscriptionTypeRepository;
+import com.restohub.adminapi.entity.*;
+import com.restohub.adminapi.repository.*;
+import com.restohub.adminapi.service.InvoicePdfService;
 import com.restohub.adminapi.service.SubscriptionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -34,188 +30,169 @@ class SubscriptionControllerTest extends BaseControllerTest {
     private SubscriptionService subscriptionService;
 
     @MockBean
+    private InvoicePdfService invoicePdfService;
+
+    @MockBean
+    private RestaurantSubscriptionRepository subscriptionRepository;
+
+    @MockBean
+    private SubscriptionPaymentRepository paymentRepository;
+
+    @MockBean
     private SubscriptionTypeRepository subscriptionTypeRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    // ========== GET /r/{id}/subscription - подписка ресторана ==========
-
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void testGetRestaurantSubscription_Success() throws Exception {
+    @WithMockUser(roles = "MANAGER")
+    void testCreateSubscription_Success() throws Exception {
         // Arrange
-        SubscriptionResponse response = new SubscriptionResponse();
-        response.setId(1L);
-        response.setRestaurantId(1L);
-        SubscriptionResponse.SubscriptionTypeInfo subscriptionTypeInfo = new SubscriptionResponse.SubscriptionTypeInfo();
-        subscriptionTypeInfo.setId(1L);
-        subscriptionTypeInfo.setCode("BASIC");
-        subscriptionTypeInfo.setName("Базовый");
-        response.setSubscriptionType(subscriptionTypeInfo);
-        response.setStartDate(LocalDate.of(2024, 1, 1));
-        response.setEndDate(LocalDate.of(2024, 12, 31));
-        response.setIsActive(true);
-        response.setCreatedAt(Instant.now());
-        response.setUpdatedAt(Instant.now());
-
-        doReturn(response).when(subscriptionService).getRestaurantSubscription(1L);
-
-        // Act & Assert
-        mockMvc.perform(get("/r/1/subscription"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.restaurantId").value(1L))
-                .andExpect(jsonPath("$.isActive").value(true));
-
-        verify(subscriptionService, times(1)).getRestaurantSubscription(1L);
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testGetRestaurantSubscription_NotFound() throws Exception {
-        // Arrange
-        doThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND")).when(subscriptionService).getRestaurantSubscription(999L);
-
-        // Act & Assert
-        mockMvc.perform(get("/r/999/subscription"))
-                .andExpect(status().isNotFound());
-
-        verify(subscriptionService, times(1)).getRestaurantSubscription(999L);
-    }
-
-    // ========== PUT /r/{id}/subscription - обновление подписки ==========
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testUpdateRestaurantSubscription_Success() throws Exception {
-        // Arrange
-        UpdateSubscriptionRequest request = new UpdateSubscriptionRequest();
-        request.setSubscriptionTypeId(2L);
-        request.setStartDate(LocalDate.of(2024, 2, 1));
-        // Используем дату в будущем для валидации @Future
-        request.setEndDate(LocalDate.now().plusYears(1));
+        CreateSubscriptionRequest request = new CreateSubscriptionRequest();
+        request.setSubscriptionTypeId(1L);
 
         SubscriptionResponse response = new SubscriptionResponse();
         response.setId(1L);
         response.setRestaurantId(1L);
-        SubscriptionResponse.SubscriptionTypeInfo subscriptionTypeInfo = new SubscriptionResponse.SubscriptionTypeInfo();
-        subscriptionTypeInfo.setId(2L);
-        subscriptionTypeInfo.setCode("PREMIUM");
-        subscriptionTypeInfo.setName("Премиум");
-        response.setSubscriptionType(subscriptionTypeInfo);
-        response.setStartDate(LocalDate.of(2024, 2, 1));
-        response.setEndDate(LocalDate.now().plusYears(1));
-        response.setIsActive(true);
-        response.setUpdatedAt(Instant.now());
+        response.setPaymentReference("SUB-2024-123456");
+        response.setStatus("DRAFT");
 
-        // Настраиваем мок репозитория для валидатора ValidSubscriptionTypeId
+        // Настройка мока для валидатора
         SubscriptionType subscriptionType = new SubscriptionType();
-        subscriptionType.setId(2L);
-        subscriptionType.setCode("PREMIUM");
-        subscriptionType.setName("Премиум");
+        subscriptionType.setId(1L);
         subscriptionType.setIsActive(true);
-        doReturn(Optional.of(subscriptionType)).when(subscriptionTypeRepository).findByIdAndIsActiveTrue(2L);
+        when(subscriptionTypeRepository.findByIdAndIsActiveTrue(1L))
+                .thenReturn(java.util.Optional.of(subscriptionType));
 
-        doReturn(response).when(subscriptionService).updateRestaurantSubscription(eq(1L), any(UpdateSubscriptionRequest.class));
+        when(subscriptionService.createSubscription(eq(1L), any(CreateSubscriptionRequest.class)))
+                .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(put("/r/1/subscription")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/r/1/subscription")
+                        .contentType("application/json")
+                        .content("{\"subscriptionTypeId\": 1}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.subscriptionType.id").value(2L));
-
-        verify(subscriptionService, times(1)).updateRestaurantSubscription(eq(1L), any(UpdateSubscriptionRequest.class));
+                .andExpect(jsonPath("$.paymentReference").value("SUB-2024-123456"))
+                .andExpect(jsonPath("$.status").value("DRAFT"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void testUpdateRestaurantSubscription_NotFound() throws Exception {
+    @WithMockUser(roles = "1C")
+    void testActivateSubscription_WithApiKey_Success() throws Exception {
         // Arrange
-        UpdateSubscriptionRequest request = new UpdateSubscriptionRequest();
-        request.setSubscriptionTypeId(2L);
+        ActivateSubscriptionRequest request = new ActivateSubscriptionRequest();
+        request.setPaymentReference("SUB-2024-123456");
+        request.setAmount(new java.math.BigDecimal("10000.00"));
+        request.setPaymentDate(LocalDateTime.now());
+        request.setExternalTransactionId("TXN-123");
 
-        // Настраиваем мок репозитория для валидатора ValidSubscriptionTypeId
-        SubscriptionType subscriptionType = new SubscriptionType();
-        subscriptionType.setId(2L);
-        subscriptionType.setCode("PREMIUM");
-        subscriptionType.setName("Премиум");
-        subscriptionType.setIsActive(true);
-        doReturn(Optional.of(subscriptionType)).when(subscriptionTypeRepository).findByIdAndIsActiveTrue(2L);
+        SubscriptionResponse response = new SubscriptionResponse();
+        response.setId(1L);
+        response.setStatus("ACTIVATED");
 
-        doThrow(new RuntimeException("SUBSCRIPTION_NOT_FOUND")).when(subscriptionService).updateRestaurantSubscription(eq(999L), any(UpdateSubscriptionRequest.class));
+        when(subscriptionService.activateSubscription(any(ActivateSubscriptionRequest.class)))
+                .thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(put("/r/999/subscription")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound());
-
-        verify(subscriptionService, times(1)).updateRestaurantSubscription(eq(999L), any(UpdateSubscriptionRequest.class));
+        mockMvc.perform(post("/subscriptions/activate")
+                        .header("X-API-Key", "test-api-key")
+                        .contentType("application/json")
+                        .content("{\"paymentReference\":\"SUB-2024-123456\",\"amount\":10000.00,\"paymentDate\":\"2024-01-01T12:00:00\",\"externalTransactionId\":\"TXN-123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVATED"));
     }
 
-    // ========== GET /subscription - список всех подписок ==========
+    @Test
+    void testActivateSubscription_WithoutApiKey_Unauthorized() throws Exception {
+        // Act & Assert
+        mockMvc.perform(post("/subscriptions/activate")
+                        .contentType("application/json")
+                        .content("{\"paymentReference\":\"SUB-2024-123456\"}"))
+                .andExpect(status().isForbidden()); // 403 вместо 401, так как SecurityConfig требует роль
+    }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void testGetAllSubscriptions_Success() throws Exception {
+    @WithMockUser(roles = "MANAGER")
+    void testGetInvoice_Success() throws Exception {
+        // Arrange
+        RestaurantSubscription subscription = new RestaurantSubscription();
+        subscription.setId(1L);
+        subscription.setPaymentReference("SUB-2024-123456");
+        
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(1L);
+        subscription.setRestaurant(restaurant);
+
+        when(subscriptionRepository.findById(1L))
+                .thenReturn(Optional.of(subscription));
+        when(invoicePdfService.generateInvoice(any(RestaurantSubscription.class)))
+                .thenReturn(new byte[]{1, 2, 3});
+
+        // Act & Assert
+        mockMvc.perform(get("/r/1/subscriptions/1/invoice"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"));
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testGetPaidInvoice_Success() throws Exception {
+        // Arrange
+        RestaurantSubscription subscription = new RestaurantSubscription();
+        subscription.setId(1L);
+        subscription.setPaymentReference("SUB-2024-123456");
+        subscription.setStatus(SubscriptionStatus.ACTIVATED);
+        
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(1L);
+        subscription.setRestaurant(restaurant);
+
+        SubscriptionPayment payment = new SubscriptionPayment();
+        payment.setStatus(PaymentStatus.SUCCESS);
+
+        when(subscriptionRepository.findById(1L))
+                .thenReturn(Optional.of(subscription));
+        when(paymentRepository.findBySubscriptionId(1L))
+                .thenReturn(java.util.Collections.singletonList(payment));
+        when(invoicePdfService.generatePaidInvoice(any(RestaurantSubscription.class), any(SubscriptionPayment.class)))
+                .thenReturn(new byte[]{1, 2, 3});
+
+        // Act & Assert
+        mockMvc.perform(get("/r/1/subscriptions/1/paid-invoice"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"));
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testGetRestaurantSubscriptions_Success() throws Exception {
         // Arrange
         SubscriptionListItemResponse item1 = new SubscriptionListItemResponse();
         item1.setId(1L);
         item1.setRestaurantId(1L);
-        SubscriptionListItemResponse.SubscriptionTypeInfo subscriptionTypeInfo = new SubscriptionListItemResponse.SubscriptionTypeInfo();
-        subscriptionTypeInfo.setId(1L);
-        subscriptionTypeInfo.setCode("BASIC");
-        subscriptionTypeInfo.setName("Базовый");
-        item1.setSubscriptionType(subscriptionTypeInfo);
-        item1.setStartDate(LocalDate.of(2024, 1, 1));
-        item1.setEndDate(LocalDate.of(2024, 12, 31));
+        item1.setStatus("ACTIVATED");
+        item1.setPaymentReference("SUB-2024-123456");
         item1.setIsActive(true);
 
-        List<SubscriptionListItemResponse> items = Arrays.asList(item1);
-        PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(1L, 50, 0, false);
-        PaginationResponse<List<SubscriptionListItemResponse>> response = new PaginationResponse<>(items, pagination);
+        SubscriptionListItemResponse item2 = new SubscriptionListItemResponse();
+        item2.setId(2L);
+        item2.setRestaurantId(1L);
+        item2.setStatus("DRAFT");
+        item2.setPaymentReference("SUB-2024-123457");
+        item2.setIsActive(false);
 
-        doReturn(response).when(subscriptionService).getAllSubscriptions(eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), eq("endDate"), eq("asc"));
+        java.util.List<SubscriptionListItemResponse> subscriptions = java.util.Arrays.asList(item1, item2);
 
-        // Act & Assert
-        mockMvc.perform(get("/subscription")
-                        .param("limit", "50")
-                        .param("offset", "0"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].id").value(1L))
-                .andExpect(jsonPath("$.pagination.total").value(1L));
-
-        verify(subscriptionService, times(1)).getAllSubscriptions(eq(50), eq(0), isNull(), isNull(), isNull(), isNull(), eq("endDate"), eq("asc"));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testGetAllSubscriptions_WithFilters() throws Exception {
-        // Arrange
-        List<SubscriptionListItemResponse> items = Arrays.asList();
-        PaginationResponse.PaginationInfo pagination = new PaginationResponse.PaginationInfo(0L, 50, 0, false);
-        PaginationResponse<List<SubscriptionListItemResponse>> response = new PaginationResponse<>(items, pagination);
-
-        doReturn(response).when(subscriptionService).getAllSubscriptions(eq(50), eq(0), eq(true), eq(1L), eq(1L), eq(true), eq("endDate"), eq("asc"));
+        when(subscriptionService.getRestaurantSubscriptions(1L))
+                .thenReturn(subscriptions);
 
         // Act & Assert
-        mockMvc.perform(get("/subscription")
-                        .param("limit", "50")
-                        .param("offset", "0")
-                        .param("isActive", "true")
-                        .param("restaurantId", "1")
-                        .param("subscriptionTypeId", "1")
-                        .param("expiringSoon", "true"))
+        mockMvc.perform(get("/r/1/subscriptions"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.pagination.total").value(0L));
-
-        verify(subscriptionService, times(1)).getAllSubscriptions(eq(50), eq(0), eq(true), eq(1L), eq(1L), eq(true), eq("endDate"), eq("asc"));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].status").value("ACTIVATED"))
+                .andExpect(jsonPath("$[0].paymentReference").value("SUB-2024-123456"))
+                .andExpect(jsonPath("$[1].id").value(2L))
+                .andExpect(jsonPath("$[1].status").value("DRAFT"))
+                .andExpect(jsonPath("$[1].paymentReference").value("SUB-2024-123457"));
     }
 }
-

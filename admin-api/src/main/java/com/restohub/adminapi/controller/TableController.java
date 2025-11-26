@@ -108,5 +108,13 @@ public class TableController {
         TableResponse response = tableService.deleteTableImage(restaurantId, tableId);
         return ResponseEntity.ok(response);
     }
+    
+    @DeleteMapping("/{tableId}/position")
+    public ResponseEntity<Void> deleteTablePosition(
+            @PathVariable("id") Long restaurantId,
+            @PathVariable("tableId") Long tableId) {
+        tableService.clearTablePosition(restaurantId, tableId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

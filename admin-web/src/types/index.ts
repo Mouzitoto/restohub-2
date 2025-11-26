@@ -57,11 +57,28 @@ export interface Restaurant {
 }
 
 export interface Subscription {
+  id?: number
   restaurantId: number
+  status?: string
+  paymentReference?: string
+  externalTransactionId?: string
+  subscriptionType?: SubscriptionType
+  startDate?: string
+  endDate?: string
   isActive: boolean
-  endDate: string
   daysRemaining: number
   isExpiringSoon: boolean
+  description?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface SubscriptionType {
+  id: number
+  code: string
+  name: string
+  description?: string
+  price: number
 }
 
 // Menu types
@@ -114,6 +131,10 @@ export interface Table {
   imageId?: number | null
   depositAmount?: string | null
   depositNote?: string | null
+  positionX1?: number | null
+  positionY1?: number | null
+  positionX2?: number | null
+  positionY2?: number | null
 }
 
 // Booking types
@@ -179,6 +200,21 @@ export interface PaginationResponse<T> {
   total: number
   limit: number
   offset: number
+}
+
+// Room Layout types
+export interface RoomLayout {
+  room: Room
+  tables: Table[]
+  imageUrl?: string
+}
+
+export interface UpdateTablePositionRequest {
+  tableId: number
+  positionX1?: number | null
+  positionY1?: number | null
+  positionX2?: number | null
+  positionY2?: number | null
 }
 
 // Error types

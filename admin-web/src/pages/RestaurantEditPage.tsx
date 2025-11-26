@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { useApp } from '../context/AppContext'
 import { apiClient } from '../services/apiClient'
 import ImageUpload from '../components/common/ImageUpload'
+import ImagePreview from '../components/common/ImagePreview'
 import { useToast } from '../context/ToastContext'
 import type { Restaurant } from '../types'
 
@@ -29,6 +30,10 @@ export default function RestaurantEditPage() {
   const [logoImageId, setLogoImageId] = useState<number | null>(null)
   const [bgImageId, setBgImageId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isEditingInfo, setIsEditingInfo] = useState(false)
+  const [isEditingLogo, setIsEditingLogo] = useState(false)
+  const [isEditingBackground, setIsEditingBackground] = useState(false)
+  const [restaurantData, setRestaurantData] = useState<RestaurantFormData | null>(null)
   const toast = useToast()
 
   const {
@@ -59,17 +64,32 @@ export default function RestaurantEditPage() {
       )
       const data = response.data
 
-      setValue('name', data.name)
-      setValue('address', data.address || '')
-      setValue('phone', data.phone || '')
-      setValue('whatsapp', data.whatsapp || '')
-      setValue('instagram', data.instagram || '')
-      setValue('description', data.description || '')
-      setValue('latitude', data.latitude || undefined)
-      setValue('longitude', data.longitude || undefined)
-      setValue('workingHours', data.workingHours || '')
-      setValue('managerLanguageCode', data.managerLanguageCode || 'ru')
-      setValue('isActive', data.isActive)
+      const formData: RestaurantFormData = {
+        name: data.name,
+        address: data.address || '',
+        phone: data.phone || '',
+        whatsapp: data.whatsapp || '',
+        instagram: data.instagram || '',
+        description: data.description || '',
+        latitude: data.latitude || undefined,
+        longitude: data.longitude || undefined,
+        workingHours: data.workingHours || '',
+        managerLanguageCode: data.managerLanguageCode || 'ru',
+        isActive: data.isActive,
+      }
+
+      setRestaurantData(formData)
+      setValue('name', formData.name)
+      setValue('address', formData.address)
+      setValue('phone', formData.phone)
+      setValue('whatsapp', formData.whatsapp)
+      setValue('instagram', formData.instagram)
+      setValue('description', formData.description)
+      setValue('latitude', formData.latitude)
+      setValue('longitude', formData.longitude)
+      setValue('workingHours', formData.workingHours)
+      setValue('managerLanguageCode', formData.managerLanguageCode)
+      setValue('isActive', formData.isActive)
 
       setLogoImageId(data.logoImageId ?? null)
       setBgImageId(data.bgImageId ?? null)
@@ -89,11 +109,29 @@ export default function RestaurantEditPage() {
       
       // Перезагружаем данные ресторана после сохранения
       await loadRestaurant()
+      setIsEditingInfo(false)
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка сохранения')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleCancelEdit = () => {
+    if (restaurantData) {
+      setValue('name', restaurantData.name)
+      setValue('address', restaurantData.address)
+      setValue('phone', restaurantData.phone)
+      setValue('whatsapp', restaurantData.whatsapp)
+      setValue('instagram', restaurantData.instagram)
+      setValue('description', restaurantData.description)
+      setValue('latitude', restaurantData.latitude)
+      setValue('longitude', restaurantData.longitude)
+      setValue('workingHours', restaurantData.workingHours)
+      setValue('managerLanguageCode', restaurantData.managerLanguageCode)
+      setValue('isActive', restaurantData.isActive)
+    }
+    setIsEditingInfo(false)
   }
 
   const handleImageUpload = async (file: File, imageType: 'logo' | 'background') => {
@@ -120,6 +158,8 @@ export default function RestaurantEditPage() {
       setBgImageId(response.data.bgImageId ?? null)
       
       toast.success('Изображение успешно загружено')
+      setIsEditingLogo(false)
+      setIsEditingBackground(false)
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
     } finally {
@@ -154,85 +194,166 @@ export default function RestaurantEditPage() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: '2rem' }}>Редактирование ресторана</h1>
+      <h1 style={{ marginBottom: '2rem' }}>Мой ресторан</h1>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
-          <h2 style={{ marginBottom: '1.5rem' }}>Основная информация</h2>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Название *</label>
-            <input {...register('name')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-            {errors.name && <div style={{ color: 'red' }}>{errors.name.message}</div>}
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Адрес</label>
-            <input {...register('address')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Телефон</label>
-            <input {...register('phone')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-            {errors.phone && <div style={{ color: 'red' }}>{errors.phone.message}</div>}
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>WhatsApp</label>
-            <input {...register('whatsapp')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Instagram</label>
-            <input {...register('instagram')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Описание</label>
-            <textarea {...register('description')} rows={5} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Рабочие часы</label>
-            <input {...register('workingHours')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>
-              <input type="checkbox" {...register('isActive')} style={{ marginRight: '0.5rem' }} />
-              Активен
-            </label>
-          </div>
+      {/* Основная информация */}
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>Основная информация</h2>
+          {!isEditingInfo && (
+            <button
+              type="button"
+              onClick={() => setIsEditingInfo(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              Редактировать
+            </button>
+          )}
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
-          <h2 style={{ marginBottom: '1.5rem' }}>Дизайн страницы</h2>
-
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '500' }}>Логотип ресторана</label>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '12px',
-                backgroundColor: logoImageId ? '#e8f5e9' : '#fff3e0',
-                color: logoImageId ? '#2e7d32' : '#e65100',
-                fontSize: '0.875rem',
-                fontWeight: '500'
-              }}>
-                <span style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  backgroundColor: logoImageId ? '#4caf50' : '#ff9800',
-                  display: 'inline-block'
-                }}></span>
-                {logoImageId ? 'Загружено' : 'Не загружено'}
-              </div>
+        {isEditingInfo ? (
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Название *</label>
+              <input {...register('name')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              {errors.name && <div style={{ color: 'red' }}>{errors.name.message}</div>}
             </div>
-            
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Адрес</label>
+              <input {...register('address')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Телефон</label>
+              <input {...register('phone')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              {errors.phone && <div style={{ color: 'red' }}>{errors.phone.message}</div>}
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>WhatsApp</label>
+              <input {...register('whatsapp')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Instagram</label>
+              <input {...register('instagram')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Описание</label>
+              <textarea {...register('description')} rows={5} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>Рабочие часы</label>
+              <input {...register('workingHours')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label>
+                <input type="checkbox" {...register('isActive')} style={{ marginRight: '0.5rem' }} />
+                Активен
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  padding: '0.75rem 2rem',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '1rem',
+                }}
+              >
+                {isLoading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={isLoading}
+                style={{
+                  padding: '0.75rem 2rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '1rem',
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Название:</strong> {restaurantData?.name || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Адрес:</strong> {restaurantData?.address || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Телефон:</strong> {restaurantData?.phone || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>WhatsApp:</strong> {restaurantData?.whatsapp || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Instagram:</strong> {restaurantData?.instagram || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Описание:</strong> {restaurantData?.description || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Рабочие часы:</strong> {restaurantData?.workingHours || '-'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Активен:</strong> {restaurantData?.isActive ? 'Да' : 'Нет'}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Логотип */}
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>Логотип ресторана</h2>
+          {!isEditingLogo && (
+            <button
+              type="button"
+              onClick={() => setIsEditingLogo(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              Редактировать
+            </button>
+          )}
+        </div>
+
+        {isEditingLogo ? (
+          <div>
             <ImageUpload
               currentImageId={logoImageId}
               onImageUploaded={(file: File) => handleImageUpload(file, 'logo')}
@@ -241,33 +362,67 @@ export default function RestaurantEditPage() {
               recommendedSize="200x200px - 500x500px"
               uploadToEntity={true}
             />
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '500' }}>Фоновое изображение</label>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '12px',
-                backgroundColor: bgImageId ? '#e8f5e9' : '#fff3e0',
-                color: bgImageId ? '#2e7d32' : '#e65100',
+            <button
+              type="button"
+              onClick={() => setIsEditingLogo(false)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
                 fontSize: '0.875rem',
-                fontWeight: '500'
+              }}
+            >
+              Отмена
+            </button>
+          </div>
+        ) : (
+          <div>
+            {logoImageId ? (
+              <ImagePreview imageId={logoImageId} size="large" />
+            ) : (
+              <div style={{ 
+                padding: '2rem', 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5', 
+                borderRadius: '8px',
+                color: '#666'
               }}>
-                <span style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  backgroundColor: bgImageId ? '#4caf50' : '#ff9800',
-                  display: 'inline-block'
-                }}></span>
-                {bgImageId ? 'Загружено' : 'Не загружено'}
+                Логотип не загружен
               </div>
-            </div>
-            
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Фоновое изображение */}
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>Фоновое изображение</h2>
+          {!isEditingBackground && (
+            <button
+              type="button"
+              onClick={() => setIsEditingBackground(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              Редактировать
+            </button>
+          )}
+        </div>
+
+        {isEditingBackground ? (
+          <div>
             <ImageUpload
               currentImageId={bgImageId}
               onImageUploaded={(file: File) => handleImageUpload(file, 'background')}
@@ -276,32 +431,48 @@ export default function RestaurantEditPage() {
               recommendedSize="минимум 1920x1080px"
               uploadToEntity={true}
             />
+            <button
+              type="button"
+              onClick={() => setIsEditingBackground(false)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              Отмена
+            </button>
           </div>
-        </div>
-
-        {role === 'ADMIN' && (
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <h2 style={{ marginBottom: '1.5rem' }}>Управление подпиской</h2>
-            <p>Управление подпиской доступно на странице подписки</p>
+        ) : (
+          <div>
+            {bgImageId ? (
+              <ImagePreview imageId={bgImageId} size="large" />
+            ) : (
+              <div style={{ 
+                padding: '2rem', 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5', 
+                borderRadius: '8px',
+                color: '#666'
+              }}>
+                Фоновое изображение не загружено
+              </div>
+            )}
           </div>
         )}
+      </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          style={{
-            padding: '0.75rem 2rem',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontSize: '1rem',
-          }}
-        >
-          {isLoading ? 'Сохранение...' : 'Сохранить'}
-        </button>
-      </form>
+      {role === 'ADMIN' && (
+        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
+          <h2 style={{ marginBottom: '1.5rem' }}>Управление подпиской</h2>
+          <p>Управление подпиской доступно на странице подписки</p>
+        </div>
+      )}
     </div>
   )
 }

@@ -4,11 +4,12 @@ import { apiClient } from '../services/apiClient'
 import Modal from '../components/common/Modal'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
+import RoomLayoutEditor from '../components/RoomLayoutEditor'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../context/ToastContext'
-import type { Room, Floor } from '../types'
+import type { Room, Floor, RoomLayout } from '../types'
 
 const roomSchema = z.object({
   name: z.string().min(1, 'Название зала обязательно').max(255),
@@ -29,6 +30,8 @@ export default function RoomsPage() {
   const [imageId, setImageId] = useState<number | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false)
+  const [layoutEditorRoomId, setLayoutEditorRoomId] = useState<number | null>(null)
   const toast = useToast()
 
   const {
@@ -79,8 +82,30 @@ export default function RoomsPage() {
     }
   }
 
+  const checkTablesWithPositions = async (roomId: number): Promise<boolean> => {
+    try {
+      const response = await apiClient.instance.get<RoomLayout>(
+        `/admin-api/r/${currentRestaurant!.id}/room/${roomId}/layout`
+      )
+      return response.data.tables.some(
+        table => table.positionX1 != null && table.positionY1 != null && 
+                 table.positionX2 != null && table.positionY2 != null
+      )
+    } catch (error) {
+      return false
+    }
+  }
+
   const handleImageUpload = async (file: File) => {
     if (!currentRestaurant || !editingRoom) return
+
+    // Проверяем наличие столов с координатами
+    const hasTablesWithPositions = await checkTablesWithPositions(editingRoom.id)
+    if (hasTablesWithPositions) {
+      if (!confirm('Вы уверены? Все расположения столов пропадут.')) {
+        return
+      }
+    }
 
     setIsLoading(true)
     try {
@@ -99,6 +124,9 @@ export default function RoomsPage() {
 
       setImageId(response.data.imageId ?? null)
       toast.success('Изображение успешно загружено')
+      if (hasTablesWithPositions) {
+        toast.info('Расположения столов были очищены')
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
     } finally {
@@ -109,6 +137,14 @@ export default function RoomsPage() {
   const handleImageRemove = async () => {
     if (!currentRestaurant || !editingRoom) return
 
+    // Проверяем наличие столов с координатами
+    const hasTablesWithPositions = await checkTablesWithPositions(editingRoom.id)
+    if (hasTablesWithPositions) {
+      if (!confirm('Вы уверены? Все расположения столов пропадут.')) {
+        return
+      }
+    }
+
     setIsLoading(true)
     try {
       const response = await apiClient.instance.delete<Room>(
@@ -117,6 +153,9 @@ export default function RoomsPage() {
 
       setImageId(response.data.imageId ?? null)
       toast.success('Изображение удалено')
+      if (hasTablesWithPositions) {
+        toast.info('Расположения столов были очищены')
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Ошибка удаления изображения')
     } finally {
@@ -215,13 +254,16 @@ export default function RoomsPage() {
         </button>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>План помещения</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Название</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Этаж</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Курение</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>На открытом воздухе</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Количество столов</th>
               <th style={{ padding: '1rem' }}>Действия</th>
             </tr>
@@ -235,6 +277,24 @@ export default function RoomsPage() {
                 <td style={{ padding: '1rem' }}>{room.name}</td>
                 <td style={{ padding: '1rem' }}>
                   {floors.find((f) => f.id === room.floorId)?.floorNumber || '-'}
+                </td>
+                <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                  <div 
+                    style={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={room.description || ''}
+                  >
+                    {room.description || '-'}
+                  </div>
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {room.isSmoking ? 'Да' : 'Нет'}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {room.isOutdoor ? 'Да' : 'Нет'}
                 </td>
                 <td style={{ padding: '1rem' }}>{room.tableCount || 0}</td>
                 <td style={{ padding: '1rem' }}>
@@ -256,6 +316,18 @@ export default function RoomsPage() {
                   >
                     Редактировать
                   </button>
+                  {room.imageId && (
+                    <button
+                      onClick={() => {
+                        setLayoutEditorRoomId(room.id)
+                        setIsLayoutEditorOpen(true)
+                      }}
+                      style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#1976d2' }}
+                      title="Редактировать схему зала"
+                    >
+                      Редактировать схему
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(room.id)}
                     disabled={!!(room.tableCount && room.tableCount > 0)}
@@ -371,6 +443,18 @@ export default function RoomsPage() {
           </div>
         </form>
       </Modal>
+
+      {isLayoutEditorOpen && layoutEditorRoomId && currentRestaurant && (
+        <RoomLayoutEditor
+          restaurantId={currentRestaurant.id}
+          roomId={layoutEditorRoomId}
+          onClose={() => {
+            setIsLayoutEditorOpen(false)
+            setLayoutEditorRoomId(null)
+            loadRooms()
+          }}
+        />
+      )}
     </div>
   )
 }

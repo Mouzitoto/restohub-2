@@ -205,13 +205,19 @@ export default function PromotionsPage() {
         </button>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1400px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Изображение</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Заголовок</th>
-              <th style={{ padding: '1rem', textAlign: 'left' }}>Период</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Тип промо</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Дата начала</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Дата окончания</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Повторяющееся</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Тип повторения</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>День недели</th>
               <th style={{ padding: '1rem' }}>Действия</th>
             </tr>
           </thead>
@@ -222,11 +228,42 @@ export default function PromotionsPage() {
                   <ImagePreview imageId={promotion.imageId ?? null} size="small" />
                 </td>
                 <td style={{ padding: '1rem' }}>{promotion.title}</td>
+                <td style={{ padding: '1rem', maxWidth: '200px' }}>
+                  <div 
+                    style={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={promotion.description || ''}
+                  >
+                    {promotion.description || '-'}
+                  </div>
+                </td>
                 <td style={{ padding: '1rem' }}>
-                  {new Date(promotion.startDate).toLocaleDateString('ru-RU')} -{' '}
+                  {promotion.promotionTypeId}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {new Date(promotion.startDate).toLocaleDateString('ru-RU')}
+                </td>
+                <td style={{ padding: '1rem' }}>
                   {promotion.endDate
                     ? new Date(promotion.endDate).toLocaleDateString('ru-RU')
-                    : 'Бесконечно'}
+                    : '-'}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {promotion.isRecurring ? 'Да' : 'Нет'}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {promotion.recurrenceType 
+                    ? promotion.recurrenceType === 'DAILY' ? 'Ежедневно' 
+                      : promotion.recurrenceType === 'WEEKLY' ? 'Еженедельно'
+                      : promotion.recurrenceType === 'MONTHLY' ? 'Ежемесячно'
+                      : promotion.recurrenceType
+                    : '-'}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  {promotion.recurrenceDayOfWeek || '-'}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <button

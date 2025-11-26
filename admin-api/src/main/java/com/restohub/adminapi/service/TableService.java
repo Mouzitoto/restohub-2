@@ -87,6 +87,10 @@ public class TableService {
         table.setImage(image);
         table.setDepositAmount(request.getDepositAmount());
         table.setDepositNote(request.getDepositNote());
+        table.setPositionX1(request.getPositionX1());
+        table.setPositionY1(request.getPositionY1());
+        table.setPositionX2(request.getPositionX2());
+        table.setPositionY2(request.getPositionY2());
         table.setIsActive(true);
         
         table = tableRepository.save(table);
@@ -200,6 +204,18 @@ public class TableService {
         }
         if (request.getDepositNote() != null) {
             table.setDepositNote(request.getDepositNote());
+        }
+        if (request.getPositionX1() != null) {
+            table.setPositionX1(request.getPositionX1());
+        }
+        if (request.getPositionY1() != null) {
+            table.setPositionY1(request.getPositionY1());
+        }
+        if (request.getPositionX2() != null) {
+            table.setPositionX2(request.getPositionX2());
+        }
+        if (request.getPositionY2() != null) {
+            table.setPositionY2(request.getPositionY2());
         }
         
         table = tableRepository.save(table);
@@ -328,6 +344,10 @@ public class TableService {
         response.setCreatedAt(table.getCreatedAt() != null ? table.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         response.setUpdatedAt(table.getUpdatedAt() != null ? table.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         response.setDeletedAt(table.getDeletedAt() != null ? table.getDeletedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
+        response.setPositionX1(table.getPositionX1());
+        response.setPositionY1(table.getPositionY1());
+        response.setPositionX2(table.getPositionX2());
+        response.setPositionY2(table.getPositionY2());
         return response;
     }
     
@@ -344,6 +364,10 @@ public class TableService {
         response.setDepositNote(table.getDepositNote());
         response.setIsActive(table.getIsActive());
         response.setCreatedAt(table.getCreatedAt() != null ? table.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
+        response.setPositionX1(table.getPositionX1());
+        response.setPositionY1(table.getPositionY1());
+        response.setPositionX2(table.getPositionX2());
+        response.setPositionY2(table.getPositionY2());
         return response;
     }
     
@@ -426,6 +450,29 @@ public class TableService {
             default:
                 return Sort.by(Sort.Direction.ASC, "tableNumber");
         }
+    }
+    
+    @Transactional
+    public void clearTablePositionsForRoom(Long roomId) {
+        List<RestaurantTable> tables = tableRepository.findByRoomIdAndIsActiveTrue(roomId);
+        for (RestaurantTable table : tables) {
+            table.setPositionX1(null);
+            table.setPositionY1(null);
+            table.setPositionX2(null);
+            table.setPositionY2(null);
+        }
+        tableRepository.saveAll(tables);
+    }
+    
+    @Transactional
+    public void clearTablePosition(Long restaurantId, Long tableId) {
+        RestaurantTable table = tableRepository.findByIdAndRestaurantIdAndIsActiveTrue(tableId, restaurantId)
+                .orElseThrow(() -> new RuntimeException("TABLE_NOT_FOUND"));
+        table.setPositionX1(null);
+        table.setPositionY1(null);
+        table.setPositionX2(null);
+        table.setPositionY2(null);
+        tableRepository.save(table);
     }
 }
 

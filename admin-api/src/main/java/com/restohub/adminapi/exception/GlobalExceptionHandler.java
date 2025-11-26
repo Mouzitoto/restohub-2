@@ -77,7 +77,9 @@ public class GlobalExceptionHandler {
                    "CANNOT_DELETE_SELF".equals(exceptionName) ||
                    "CANNOT_DEACTIVATE_SELF".equals(exceptionName) ||
                    "BOOKING_ALREADY_CANCELLED_OR_REJECTED".equals(exceptionName) ||
-                   "PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED".equals(exceptionName)) {
+                   "PRE_ORDER_ALREADY_CANCELLED_OR_REJECTED".equals(exceptionName) ||
+                   "TABLE_POSITIONS_INTERSECT".equals(exceptionName) ||
+                   "TABLE_NOT_IN_ROOM".equals(exceptionName)) {
             status = HttpStatus.BAD_REQUEST;
         } else if ("USER_NOT_FOUND".equals(exceptionName) ||
                    "RESTAURANT_NOT_FOUND".equals(exceptionName) ||
@@ -231,6 +233,8 @@ public class GlobalExceptionHandler {
             case "CANNOT_MODIFY_SELF" -> "Нельзя изменять собственный профиль";
             case "CANNOT_DELETE_SELF" -> "Нельзя удалить самого себя";
             case "CANNOT_DEACTIVATE_SELF" -> "Нельзя деактивировать самого себя";
+            case "TABLE_POSITIONS_INTERSECT" -> "Позиции столов пересекаются";
+            case "TABLE_NOT_IN_ROOM" -> "Стол не принадлежит указанному залу";
             default -> "Произошла ошибка";
         };
     }
