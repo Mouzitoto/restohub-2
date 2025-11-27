@@ -58,7 +58,8 @@ export const restaurantApi = {
 
   // GET /client-api/r/:id/menu - меню ресторана
   getMenu: async (id: number): Promise<ApiMenuCategory[]> => {
-    return apiClient.get<ApiMenuCategory[]>(`/client-api/r/${id}/menu`);
+    const response = await apiClient.get<{ categories: ApiMenuCategory[] }>(`/client-api/r/${id}/menu`);
+    return response.categories || [];
   },
 
   // GET /client-api/r/:id/floor - список этажей

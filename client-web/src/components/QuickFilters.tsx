@@ -1,24 +1,14 @@
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Utensils, Wine, Coffee, MapPin, Sunrise, Sun, Moon, Percent } from 'lucide-react';
+import { MapPin, Sunrise, Sun, Moon, Percent } from 'lucide-react';
 
 interface QuickFiltersProps {
-  selectedType: string;
   selectedMealTime: string;
   isNearby: boolean;
   hasPromotions: boolean;
-  onTypeChange: (type: string) => void;
   onMealTimeChange: (mealTime: string) => void;
   onNearbyToggle: () => void;
   onPromotionsToggle: () => void;
 }
-
-const establishmentTypes = [
-  { id: '', label: 'Все', icon: null },
-  { id: 'restaurant', label: 'Рестораны', icon: Utensils },
-  { id: 'bar', label: 'Бары', icon: Wine },
-  { id: 'cafe', label: 'Кафе', icon: Coffee },
-];
 
 const mealTimes = [
   { id: '', label: 'Все', icon: null },
@@ -28,11 +18,9 @@ const mealTimes = [
 ];
 
 export function QuickFilters({ 
-  selectedType, 
   selectedMealTime,
   isNearby,
   hasPromotions,
-  onTypeChange, 
   onMealTimeChange,
   onNearbyToggle,
   onPromotionsToggle

@@ -54,3 +54,7 @@ resilience4j:
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
 
+whatsapp:
+  bot:
+    phone: ${WHATSAPP_BOT_PHONE:79991234567}
+

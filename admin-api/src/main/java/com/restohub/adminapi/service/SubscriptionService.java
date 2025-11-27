@@ -108,9 +108,7 @@ public class SubscriptionService {
             throw new RuntimeException("INVALID_SUBSCRIPTION_STATUS");
         }
         
-        // Обновление статуса на ACTIVATED
-        subscription.setStatus(SubscriptionStatus.ACTIVATED);
-        subscription.setIsActive(true);
+        // Обновление externalTransactionId
         subscription.setExternalTransactionId(request.getExternalTransactionId());
         
         // Проверка существующих активных подписок для определения startDate
@@ -138,9 +136,13 @@ public class SubscriptionService {
             }
         }
         
-        // Установка дат: startDate = endDate существующей подписки (если есть), иначе paymentDate
+        // Установка дат ПЕРЕД активацией: startDate = endDate существующей подписки (если есть), иначе paymentDate
         subscription.setStartDate(startDate);
         subscription.setEndDate(startDate.plusMonths(1));
+        
+        // Обновление статуса на ACTIVATED и активация (после установки дат)
+        subscription.setStatus(SubscriptionStatus.ACTIVATED);
+        subscription.setIsActive(true);
         
         subscription = subscriptionRepository.save(subscription);
         
@@ -215,6 +217,22 @@ public class SubscriptionService {
         
         if (request.getIsActive() != null) {
             subscription.setIsActive(request.getIsActive());
+        }
+        
+        // Если подписка активна, проверяем наличие дат (после всех обновлений)
+        if (subscription.getIsActive() != null && subscription.getIsActive()) {
+            if (subscription.getStartDate() == null || subscription.getEndDate() == null) {
+                // Если дат нет, устанавливаем дефолтные значения
+                LocalDate now = LocalDate.now();
+                if (subscription.getStartDate() == null) {
+                    subscription.setStartDate(now);
+                }
+                if (subscription.getEndDate() == null) {
+                    // Используем startDate (который уже установлен выше) или текущую дату
+                    LocalDate startDate = subscription.getStartDate();
+                    subscription.setEndDate(startDate.plusMonths(1));
+                }
+            }
         }
         
         if (request.getDescription() != null) {

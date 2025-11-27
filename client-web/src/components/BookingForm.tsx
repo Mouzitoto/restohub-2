@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Restaurant, Room, Table } from '../types/restaurant';
+import type { Restaurant, Room, Table } from '../types/restaurant';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -27,7 +27,7 @@ interface PreOrderItem {
   specialRequests: string | null;
 }
 
-export function BookingForm({ restaurant, room, table, onClose, onBack }: BookingFormProps) {
+export function BookingForm({ restaurant, table, onClose, onBack }: BookingFormProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   

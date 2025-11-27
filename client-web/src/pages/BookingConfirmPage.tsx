@@ -2,10 +2,10 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { CheckCircle2, MessageCircle } from 'lucide-react';
 import { Card } from '../components/ui/card';
-import { BookingResponse } from '../types/restaurant';
+import type { BookingResponse } from '../types/restaurant';
 
 export function BookingConfirmPage() {
-  const { id, bookingId } = useParams<{ id: string; bookingId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   

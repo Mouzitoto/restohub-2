@@ -5,7 +5,7 @@ import { ArrowLeft, Cigarette, CigaretteOff, Sun } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { restaurantApi } from '../services/api';
 import { mapFloor, mapRoom, mapRestaurant } from '../utils/mappers';
-import { Floor, Room, Restaurant } from '../types/restaurant';
+import type { Floor, Room, Restaurant } from '../types/restaurant';
 import { toast } from 'sonner';
 
 export function RoomSelectionPage() {

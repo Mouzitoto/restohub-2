@@ -14,8 +14,8 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { restaurantApi } from '../services/api';
-import { mapMenuCategory, mapMenuItem, mapRestaurant } from '../utils/mappers';
-import { MenuCategory, Dish, Restaurant } from '../types/restaurant';
+import { mapMenuCategory, mapRestaurant } from '../utils/mappers';
+import type { MenuCategory, Dish, Restaurant } from '../types/restaurant';
 import { toast } from 'sonner';
 
 interface CartItem {

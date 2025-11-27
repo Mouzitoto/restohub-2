@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Restaurant } from '../types/restaurant';
+import type { Restaurant } from '../types/restaurant';
 import { MapPin, Star, Tag } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';

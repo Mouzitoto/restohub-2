@@ -51,5 +51,8 @@ public class MenuItem extends BaseEntity {
     
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
+    
+    @Column(name = "is_available", nullable = false)
+    private Boolean isAvailable = true;
 }
 

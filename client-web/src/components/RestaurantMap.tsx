@@ -1,4 +1,4 @@
-import { Restaurant } from '../types/restaurant';
+import type { Restaurant } from '../types/restaurant';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from './ui/button';

@@ -8,13 +8,12 @@ import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { RestoHubLogo } from '../components/RestoHubLogo';
 import { restaurantApi } from '../services/api';
 import { mapRestaurant, mapPromotion } from '../utils/mappers';
-import { Restaurant, Promotion } from '../types/restaurant';
+import type { Restaurant, Promotion } from '../types/restaurant';
 import { toast } from 'sonner';
 
 export function RestaurantPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const menuRef = useRef<HTMLDivElement>(null);
   const promotionsRef = useRef<HTMLDivElement>(null);
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);

@@ -21,17 +21,23 @@ export interface ApiRestaurant {
 export interface ApiMenuCategory {
   id: number;
   name: string;
+  description?: string;
   displayOrder: number;
   imageId?: number;
-  menuItems: ApiMenuItem[];
+  items: ApiMenuItem[];
 }
 
 export interface ApiMenuItem {
   id: number;
   name: string;
   description?: string;
+  ingredients?: string;
   price: number;
+  discountPercent?: number;
+  spicinessLevel?: number;
+  hasSugar?: boolean;
   imageId?: number;
+  displayOrder?: number;
   weight?: string;
   isNew?: boolean;
   hasPromo?: boolean;

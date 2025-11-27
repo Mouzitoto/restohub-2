@@ -6,7 +6,7 @@ import { BookingForm } from '../components/BookingForm';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { restaurantApi } from '../services/api';
 import { mapRestaurant, mapRoom, mapTable } from '../utils/mappers';
-import { Restaurant, Room, Table } from '../types/restaurant';
+import type { Restaurant, Room, Table } from '../types/restaurant';
 import { toast } from 'sonner';
 
 export function TableSelectionPage() {

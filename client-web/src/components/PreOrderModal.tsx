@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { Card } from './ui/card';
-import { X, Plus, Minus, Trash2 } from 'lucide-react';
+import { Plus, Minus, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +11,8 @@ import {
   DialogTitle,
 } from './ui/dialog';
 import { restaurantApi } from '../services/api';
-import { mapMenuCategory, mapMenuItem } from '../utils/mappers';
-import { MenuCategory, Dish } from '../types/restaurant';
+import { mapMenuCategory } from '../utils/mappers';
+import type { MenuCategory, Dish } from '../types/restaurant';
 import { toast } from 'sonner';
 
 interface PreOrderModalProps {
@@ -99,8 +98,6 @@ export function PreOrderModal({ restaurantId, onClose, onConfirm, initialItems =
   };
 
   const totalCost = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const allDishes = menuCategories.flatMap(cat => cat.dishes);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>

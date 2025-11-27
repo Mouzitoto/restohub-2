@@ -1,4 +1,4 @@
-import {
+import type {
   ApiRestaurant,
   ApiMenuCategory,
   ApiMenuItem,
@@ -73,7 +73,7 @@ export const mapMenuCategory = (api: ApiMenuCategory): MenuCategory => {
     id: api.id.toString(),
     name: api.name,
     imageUrl: getImageUrl(api.imageId),
-    dishes: api.menuItems.map(mapMenuItem),
+    dishes: (api.items || []).map(mapMenuItem),
   };
 };
 

@@ -1,4 +1,4 @@
-import { Promotion } from '../types/restaurant';
+import type { Promotion } from '../types/restaurant';
 import { Badge } from './ui/badge';
 import { Calendar, RefreshCw } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';

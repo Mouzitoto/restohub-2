@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
 import { Filters, Filters as FiltersType } from '../components/Filters';
 import { RestaurantCard } from '../components/RestaurantCard';
@@ -13,11 +12,10 @@ import { Badge } from '../components/ui/badge';
 import { QuickFilters } from '../components/QuickFilters';
 import { restaurantApi } from '../services/api';
 import { mapRestaurant, checkRestaurantFeatures } from '../utils/mappers';
-import { Restaurant } from '../types/restaurant';
+import type { Restaurant } from '../types/restaurant';
 import { toast } from 'sonner';
 
 export function HomePage() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState<FiltersType>({
     searchQuery: '',
     cuisineType: '',
@@ -208,11 +206,9 @@ export function HomePage() {
             onChange={(value) => handleFilterChange({ searchQuery: value })}
           />
           <QuickFilters
-            selectedType={filters.establishmentType}
             selectedMealTime={filters.mealTime}
             isNearby={filters.isNearby}
             hasPromotions={filters.hasPromotions}
-            onTypeChange={(type) => handleFilterChange({ establishmentType: type })}
             onMealTimeChange={(mealTime) => handleFilterChange({ mealTime })}
             onNearbyToggle={() => handleFilterChange({ isNearby: !filters.isNearby, sortBy: !filters.isNearby ? 'distance' : filters.sortBy })}
             onPromotionsToggle={() => handleFilterChange({ hasPromotions: !filters.hasPromotions })}
