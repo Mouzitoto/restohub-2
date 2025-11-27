@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class PromotionResponse {
@@ -17,7 +18,7 @@ public class PromotionResponse {
     private Long imageId;
     private Boolean isRecurring;
     private String recurrenceType;
-    private Integer recurrenceDayOfWeek;
+    private List<Integer> recurrenceDaysOfWeek;
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;

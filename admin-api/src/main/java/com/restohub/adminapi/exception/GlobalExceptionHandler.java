@@ -68,6 +68,8 @@ public class GlobalExceptionHandler {
                    "INVALID_RECURRENCE_TYPE".equals(exceptionName) ||
                    "RECURRENCE_DAY_OF_WEEK_REQUIRED".equals(exceptionName) ||
                    "INVALID_RECURRENCE_DAY_OF_WEEK".equals(exceptionName) ||
+                   "RECURRENCE_DAYS_OF_WEEK_REQUIRED".equals(exceptionName) ||
+                   "INVALID_RECURRENCE_DAYS_OF_WEEK".equals(exceptionName) ||
                    "RECURRENCE_FIELDS_NOT_ALLOWED".equals(exceptionName) ||
                    "UNSUPPORTED_EXPORT_FORMAT".equals(exceptionName) ||
                    "INVALID_EXPORT_TYPE".equals(exceptionName) ||
@@ -218,6 +220,8 @@ public class GlobalExceptionHandler {
             case "INVALID_RECURRENCE_TYPE" -> "Неверный тип повторения. Допустимые значения: WEEKLY, MONTHLY, DAILY";
             case "RECURRENCE_DAY_OF_WEEK_REQUIRED" -> "День недели обязателен для еженедельных повторений";
             case "INVALID_RECURRENCE_DAY_OF_WEEK" -> "Неверный день недели. Должен быть от 1 до 7";
+            case "RECURRENCE_DAYS_OF_WEEK_REQUIRED" -> "Дни недели обязательны для еженедельных повторений. Выберите хотя бы один день";
+            case "INVALID_RECURRENCE_DAYS_OF_WEEK" -> "Неверные дни недели. Все дни должны быть от 1 до 7 и не должны повторяться";
             case "RECURRENCE_FIELDS_NOT_ALLOWED" -> "Поля повторения не допускаются для неповторяющихся событий";
             case "CLIENT_NOT_FOUND" -> "Клиент не найден";
             case "BOOKING_NOT_FOUND" -> "Бронирование не найдено";

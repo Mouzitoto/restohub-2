@@ -77,12 +77,21 @@ public class PromotionService {
             if (!"WEEKLY".equals(recurrenceType) && !"MONTHLY".equals(recurrenceType) && !"DAILY".equals(recurrenceType)) {
                 throw new RuntimeException("INVALID_RECURRENCE_TYPE");
             }
-            if ("WEEKLY".equals(recurrenceType) && (request.getRecurrenceDayOfWeek() == null || 
-                    request.getRecurrenceDayOfWeek() < 1 || request.getRecurrenceDayOfWeek() > 7)) {
-                throw new RuntimeException("RECURRENCE_DAY_OF_WEEK_REQUIRED");
+            if ("WEEKLY".equals(recurrenceType)) {
+                if (request.getRecurrenceDaysOfWeek() == null || request.getRecurrenceDaysOfWeek().isEmpty()) {
+                    throw new RuntimeException("RECURRENCE_DAYS_OF_WEEK_REQUIRED");
+                }
+                // Проверка, что все дни в диапазоне 1-7 и нет дубликатов
+                long distinctCount = request.getRecurrenceDaysOfWeek().stream()
+                        .filter(day -> day != null && day >= 1 && day <= 7)
+                        .distinct()
+                        .count();
+                if (distinctCount != request.getRecurrenceDaysOfWeek().size()) {
+                    throw new RuntimeException("INVALID_RECURRENCE_DAYS_OF_WEEK");
+                }
             }
         } else {
-            if (request.getRecurrenceType() != null || request.getRecurrenceDayOfWeek() != null) {
+            if (request.getRecurrenceType() != null || request.getRecurrenceDaysOfWeek() != null) {
                 throw new RuntimeException("RECURRENCE_FIELDS_NOT_ALLOWED");
             }
         }
@@ -104,7 +113,7 @@ public class PromotionService {
         promotion.setImage(image);
         promotion.setIsRecurring(isRecurring);
         promotion.setRecurrenceType(isRecurring ? request.getRecurrenceType().trim().toUpperCase() : null);
-        promotion.setRecurrenceDayOfWeek(isRecurring && "WEEKLY".equals(promotion.getRecurrenceType()) ? request.getRecurrenceDayOfWeek() : null);
+        promotion.setRecurrenceDaysOfWeek(isRecurring && "WEEKLY".equals(promotion.getRecurrenceType()) ? request.getRecurrenceDaysOfWeek() : null);
         promotion.setIsActive(true);
         
         promotion = promotionRepository.save(promotion);
@@ -240,17 +249,24 @@ public class PromotionService {
                 promotion.setRecurrenceType(recurrenceType);
                 
                 if ("WEEKLY".equals(recurrenceType)) {
-                    if (request.getRecurrenceDayOfWeek() == null || 
-                            request.getRecurrenceDayOfWeek() < 1 || request.getRecurrenceDayOfWeek() > 7) {
-                        throw new RuntimeException("RECURRENCE_DAY_OF_WEEK_REQUIRED");
+                    if (request.getRecurrenceDaysOfWeek() == null || request.getRecurrenceDaysOfWeek().isEmpty()) {
+                        throw new RuntimeException("RECURRENCE_DAYS_OF_WEEK_REQUIRED");
                     }
-                    promotion.setRecurrenceDayOfWeek(request.getRecurrenceDayOfWeek());
+                    // Проверка, что все дни в диапазоне 1-7 и нет дубликатов
+                    long distinctCount = request.getRecurrenceDaysOfWeek().stream()
+                            .filter(day -> day != null && day >= 1 && day <= 7)
+                            .distinct()
+                            .count();
+                    if (distinctCount != request.getRecurrenceDaysOfWeek().size()) {
+                        throw new RuntimeException("INVALID_RECURRENCE_DAYS_OF_WEEK");
+                    }
+                    promotion.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
                 } else {
-                    promotion.setRecurrenceDayOfWeek(null);
+                    promotion.setRecurrenceDaysOfWeek(null);
                 }
             } else {
                 promotion.setRecurrenceType(null);
-                promotion.setRecurrenceDayOfWeek(null);
+                promotion.setRecurrenceDaysOfWeek(null);
             }
         } else if (promotion.getIsRecurring() && request.getRecurrenceType() != null) {
             // Обновление типа повторения для существующего повторяющегося события
@@ -260,14 +276,19 @@ public class PromotionService {
             }
             promotion.setRecurrenceType(recurrenceType);
             if ("WEEKLY".equals(recurrenceType)) {
-                if (request.getRecurrenceDayOfWeek() != null) {
-                    if (request.getRecurrenceDayOfWeek() < 1 || request.getRecurrenceDayOfWeek() > 7) {
-                        throw new RuntimeException("INVALID_RECURRENCE_DAY_OF_WEEK");
+                if (request.getRecurrenceDaysOfWeek() != null && !request.getRecurrenceDaysOfWeek().isEmpty()) {
+                    // Проверка, что все дни в диапазоне 1-7 и нет дубликатов
+                    long distinctCount = request.getRecurrenceDaysOfWeek().stream()
+                            .filter(day -> day != null && day >= 1 && day <= 7)
+                            .distinct()
+                            .count();
+                    if (distinctCount != request.getRecurrenceDaysOfWeek().size()) {
+                        throw new RuntimeException("INVALID_RECURRENCE_DAYS_OF_WEEK");
                     }
-                    promotion.setRecurrenceDayOfWeek(request.getRecurrenceDayOfWeek());
+                    promotion.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
                 }
             } else {
-                promotion.setRecurrenceDayOfWeek(null);
+                promotion.setRecurrenceDaysOfWeek(null);
             }
         }
         
@@ -317,7 +338,7 @@ public class PromotionService {
         response.setImageId(promotion.getImage() != null ? promotion.getImage().getId() : null);
         response.setIsRecurring(promotion.getIsRecurring());
         response.setRecurrenceType(promotion.getRecurrenceType());
-        response.setRecurrenceDayOfWeek(promotion.getRecurrenceDayOfWeek());
+        response.setRecurrenceDaysOfWeek(promotion.getRecurrenceDaysOfWeek());
         response.setIsActive(promotion.getIsActive());
         response.setCreatedAt(promotion.getCreatedAt() != null ? promotion.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         response.setUpdatedAt(promotion.getUpdatedAt() != null ? promotion.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
@@ -345,7 +366,7 @@ public class PromotionService {
         response.setImageId(promotion.getImage() != null ? promotion.getImage().getId() : null);
         response.setIsRecurring(promotion.getIsRecurring());
         response.setRecurrenceType(promotion.getRecurrenceType());
-        response.setRecurrenceDayOfWeek(promotion.getRecurrenceDayOfWeek());
+        response.setRecurrenceDaysOfWeek(promotion.getRecurrenceDaysOfWeek());
         response.setIsActive(promotion.getIsActive());
         response.setCreatedAt(promotion.getCreatedAt() != null ? promotion.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);
         return response;
@@ -401,6 +422,22 @@ public class PromotionService {
         }
         
         return toResponse(promotion);
+    }
+    
+    public List<PromotionTypeResponse> getPromotionTypes() {
+        List<PromotionType> types = promotionTypeRepository.findByIsActiveTrue();
+        return types.stream()
+                .map(this::toPromotionTypeResponse)
+                .collect(Collectors.toList());
+    }
+    
+    private PromotionTypeResponse toPromotionTypeResponse(PromotionType type) {
+        PromotionTypeResponse response = new PromotionTypeResponse();
+        response.setId(type.getId());
+        response.setCode(type.getCode());
+        response.setName(type.getName());
+        response.setDescription(type.getDescription());
+        return response;
     }
     
     private Sort buildSort(String sortBy, String sortOrder) {

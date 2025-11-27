@@ -177,13 +177,25 @@ export interface Promotion {
   id: number
   title: string
   description?: string
-  promotionTypeId: number
+  promotionTypeId?: number  // Для формы создания/редактирования
+  promotionType?: {
+    id: number
+    code: string
+    name: string
+  }  // Из API ответа
   startDate: string
   endDate?: string | null
   imageId?: number | null
   isRecurring: boolean
   recurrenceType?: 'WEEKLY' | 'MONTHLY' | 'DAILY' | null
-  recurrenceDayOfWeek?: number | null
+  recurrenceDaysOfWeek?: number[] | null
+}
+
+export interface PromotionType {
+  id: number
+  code: string
+  name: string
+  description?: string
 }
 
 // Analytics types

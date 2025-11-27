@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "promotions")
@@ -47,6 +50,7 @@ public class Promotion extends BaseEntity {
     private String recurrenceType;
     
     @Column(name = "recurrence_day_of_week")
-    private Integer recurrenceDayOfWeek;
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private List<Integer> recurrenceDaysOfWeek;
 }
 

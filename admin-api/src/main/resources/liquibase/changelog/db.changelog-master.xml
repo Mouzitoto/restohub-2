@@ -14,6 +14,8 @@
     <include file="changesets/V7__insert_subscription_types.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V8__subscription_dates_constraint.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V9__table_position_coordinates.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V10__insert_promotion_types.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V11__promotion_recurrence_days_array.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
 

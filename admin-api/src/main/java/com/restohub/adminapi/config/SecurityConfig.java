@@ -19,7 +19,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -89,10 +91,40 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Используем setAllowedOriginPatterns вместо setAllowedOrigins при allowCredentials(true)
         // Это позволяет использовать wildcards для поддержки разных портов localhost
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:*",
-            "http://127.0.0.1:*"
-        ));
+        List<String> allowedOriginPatterns = new ArrayList<>();
+        
+        // Добавляем localhost patterns для разработки
+        allowedOriginPatterns.add("http://localhost:*");
+        allowedOriginPatterns.add("http://127.0.0.1:*");
+        
+        // Добавляем restohub.local домены для локального развертывания
+        allowedOriginPatterns.add("http://*.restohub.local");
+        allowedOriginPatterns.add("https://*.restohub.local");
+        
+        // Добавляем явно указанный allowedOrigin из конфигурации
+        if (allowedOrigin != null && !allowedOrigin.isEmpty()) {
+            // Если это URL с портом, добавляем как паттерн
+            if (allowedOrigin.contains("localhost") || allowedOrigin.contains("127.0.0.1")) {
+                // Для localhost используем паттерн с портом
+                String baseUrl = allowedOrigin.replaceAll(":\\d+$", "");
+                allowedOriginPatterns.add(baseUrl + ":*");
+            } else {
+                // Для других доменов добавляем как есть
+                allowedOriginPatterns.add(allowedOrigin);
+            }
+        }
+        
+        // Добавляем clientWebUrl если он указан
+        if (clientWebUrl != null && !clientWebUrl.isEmpty() && !allowedOriginPatterns.contains(clientWebUrl)) {
+            if (clientWebUrl.contains("localhost") || clientWebUrl.contains("127.0.0.1")) {
+                String baseUrl = clientWebUrl.replaceAll(":\\d+$", "");
+                allowedOriginPatterns.add(baseUrl + ":*");
+            } else {
+                allowedOriginPatterns.add(clientWebUrl);
+            }
+        }
+        
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

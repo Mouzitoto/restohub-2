@@ -55,6 +55,12 @@ public class PromotionController {
         return ResponseEntity.ok(response);
     }
     
+    @GetMapping("/types")
+    public ResponseEntity<List<PromotionTypeResponse>> getPromotionTypes() {
+        List<PromotionTypeResponse> response = promotionService.getPromotionTypes();
+        return ResponseEntity.ok(response);
+    }
+    
     @GetMapping("/{promotionId}")
     public ResponseEntity<PromotionResponse> getPromotion(
             @PathVariable("id") Long restaurantId,

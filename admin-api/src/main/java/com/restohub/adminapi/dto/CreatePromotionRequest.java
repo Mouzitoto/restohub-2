@@ -7,6 +7,7 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class CreatePromotionRequest {
@@ -35,8 +36,6 @@ public class CreatePromotionRequest {
     @ValidRecurrenceType
     private String recurrenceType;
     
-    @Min(value = 1, message = "День недели должен быть от 1 до 7")
-    @Max(value = 7, message = "День недели должен быть от 1 до 7")
-    private Integer recurrenceDayOfWeek;
+    private List<@Min(value = 1, message = "День недели должен быть от 1 до 7") @Max(value = 7, message = "День недели должен быть от 1 до 7") Integer> recurrenceDaysOfWeek;
 }
 

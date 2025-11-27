@@ -261,12 +261,6 @@ export default function RoomLayoutEditor({
     await updateTablePosition(table.id, x, y, x + size, y + size)
   }
 
-  const handleCreateNewTable = () => {
-    setShowTableDropdown(false)
-    // Здесь можно открыть модалку создания нового стола
-    toast.info('Создайте стол в разделе "Столы", затем разместите его на схеме')
-  }
-
   const updateTablePosition = async (
     tableId: number, 
     x1: number, 
@@ -977,16 +971,6 @@ export default function RoomLayoutEditor({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderBottom: '1px solid #eee',
-              }}
-              onClick={handleCreateNewTable}
-            >
-              Создать новый
-            </div>
             {roomLayout.tables.map((table) => (
               <div
                 key={table.id}

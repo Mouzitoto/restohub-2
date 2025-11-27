@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../context/ToastContext'
-import type { Promotion } from '../types'
+import type { Promotion, PromotionType } from '../types'
 
 const promotionSchema = z.object({
   title: z.string().min(1, 'Заголовок обязателен').max(255),
@@ -18,7 +18,7 @@ const promotionSchema = z.object({
   endDate: z.string().optional(),
   isRecurring: z.boolean().optional(),
   recurrenceType: z.enum(['WEEKLY', 'MONTHLY', 'DAILY']).optional(),
-  recurrenceDayOfWeek: z.number().min(1).max(7).optional(),
+  recurrenceDaysOfWeek: z.array(z.number().min(1).max(7)).optional(),
 })
 
 type PromotionFormData = z.infer<typeof promotionSchema>
@@ -26,6 +26,7 @@ type PromotionFormData = z.infer<typeof promotionSchema>
 export default function PromotionsPage() {
   const { currentRestaurant } = useApp()
   const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [promotionTypes, setPromotionTypes] = useState<PromotionType[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
   const [imageId, setImageId] = useState<number | null>(null)
@@ -50,10 +51,25 @@ export default function PromotionsPage() {
   const recurrenceType = watch('recurrenceType')
 
   useEffect(() => {
+    loadPromotionTypes()
     if (currentRestaurant) {
       loadPromotions()
     }
   }, [currentRestaurant])
+  
+  const loadPromotionTypes = async () => {
+    try {
+      // Типы промо-событий одинаковые для всех ресторанов, используем id=1 как fallback
+      const restaurantId = currentRestaurant?.id || 1
+      const response = await apiClient.instance.get<PromotionType[]>(
+        `/admin-api/r/${restaurantId}/promotion/types`
+      )
+      setPromotionTypes(Array.isArray(response.data) ? response.data : [])
+    } catch (error) {
+      toast.error('Не удалось загрузить типы промо-событий')
+      setPromotionTypes([])
+    }
+  }
 
   const loadPromotions = async () => {
     if (!currentRestaurant) return
@@ -241,7 +257,7 @@ export default function PromotionsPage() {
                   </div>
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  {promotion.promotionTypeId}
+                  {promotion.promotionType?.name || promotionTypes.find(t => t.id === promotion.promotionTypeId)?.name || '-'}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   {new Date(promotion.startDate).toLocaleDateString('ru-RU')}
@@ -263,7 +279,15 @@ export default function PromotionsPage() {
                     : '-'}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  {promotion.recurrenceDayOfWeek || '-'}
+                  {promotion.recurrenceDaysOfWeek && promotion.recurrenceDaysOfWeek.length > 0
+                    ? promotion.recurrenceDaysOfWeek
+                        .sort((a, b) => a - b)
+                        .map((day) => {
+                          const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+                          return dayNames[day - 1]
+                        })
+                        .join(', ')
+                    : '-'}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <button
@@ -274,12 +298,12 @@ export default function PromotionsPage() {
                       reset({
                         title: promotion.title,
                         description: promotion.description || '',
-                        promotionTypeId: promotion.promotionTypeId,
+                        promotionTypeId: promotion.promotionType?.id || promotion.promotionTypeId,
                         startDate: promotion.startDate.split('T')[0],
                         endDate: promotion.endDate ? promotion.endDate.split('T')[0] : '',
                         isRecurring: promotion.isRecurring,
                         recurrenceType: promotion.recurrenceType || undefined,
-                        recurrenceDayOfWeek: promotion.recurrenceDayOfWeek || undefined,
+                        recurrenceDaysOfWeek: promotion.recurrenceDaysOfWeek || undefined,
                       })
                       setIsModalOpen(true)
                     }}
@@ -326,7 +350,14 @@ export default function PromotionsPage() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>Тип промо-события *</label>
-            <input type="number" {...register('promotionTypeId', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            <select {...register('promotionTypeId', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
+              <option value="">Выберите тип</option>
+              {promotionTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
             {errors.promotionTypeId && <div style={{ color: 'red' }}>{errors.promotionTypeId.message}</div>}
           </div>
 
@@ -360,10 +391,84 @@ export default function PromotionsPage() {
                 </select>
               </div>
 
+              {recurrenceType && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                  {recurrenceType === 'DAILY' && (
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      <strong>Ежедневно:</strong> Событие будет повторяться каждый день в период действия акции.
+                    </div>
+                  )}
+                  {recurrenceType === 'WEEKLY' && (
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      <strong>Еженедельно:</strong> Событие будет повторяться в выбранные дни недели каждую неделю в период действия акции.
+                    </div>
+                  )}
+                  {recurrenceType === 'MONTHLY' && (
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      <strong>Ежемесячно:</strong> Событие будет повторяться каждый месяц в тот же день месяца, что указан в дате начала акции.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {recurrenceType === 'WEEKLY' && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <label>День недели (1-7, где 1=понедельник)</label>
-                  <input type="number" min="1" max="7" {...register('recurrenceDayOfWeek', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Дни недели *</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {[
+                      { value: 1, label: 'Пн' },
+                      { value: 2, label: 'Вт' },
+                      { value: 3, label: 'Ср' },
+                      { value: 4, label: 'Чт' },
+                      { value: 5, label: 'Пт' },
+                      { value: 6, label: 'Сб' },
+                      { value: 7, label: 'Вс' },
+                    ].map((day) => {
+                      const isSelected = watch('recurrenceDaysOfWeek')?.includes(day.value) || false
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            const currentDays = watch('recurrenceDaysOfWeek') || []
+                            const newDays = isSelected
+                              ? currentDays.filter((d: number) => d !== day.value)
+                              : [...currentDays, day.value]
+                            reset({
+                              ...watch(),
+                              recurrenceDaysOfWeek: newDays.length > 0 ? newDays : undefined,
+                            })
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            minWidth: '50px',
+                            border: `2px solid ${isSelected ? '#007bff' : '#ddd'}`,
+                            borderRadius: '4px',
+                            backgroundColor: isSelected ? '#007bff' : 'white',
+                            color: isSelected ? 'white' : '#333',
+                            cursor: 'pointer',
+                            fontWeight: isSelected ? 'bold' : 'normal',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = '#f0f0f0'
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = 'white'
+                            }
+                          }}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {errors.recurrenceDaysOfWeek && (
+                    <div style={{ color: 'red', marginTop: '0.25rem' }}>{errors.recurrenceDaysOfWeek.message}</div>
+                  )}
                 </div>
               )}
             </>
