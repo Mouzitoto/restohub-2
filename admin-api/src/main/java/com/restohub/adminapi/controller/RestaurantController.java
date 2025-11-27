@@ -87,5 +87,19 @@ public class RestaurantController {
         RestaurantResponse response = restaurantService.deleteRestaurantImage(id, imageType);
         return ResponseEntity.ok(response);
     }
+    
+    @PutMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<RestaurantResponse> activateRestaurant(@PathVariable Long id) {
+        RestaurantResponse response = restaurantService.activateRestaurant(id);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<RestaurantResponse> deactivateRestaurant(@PathVariable Long id) {
+        RestaurantResponse response = restaurantService.deactivateRestaurant(id);
+        return ResponseEntity.ok(response);
+    }
 }
 

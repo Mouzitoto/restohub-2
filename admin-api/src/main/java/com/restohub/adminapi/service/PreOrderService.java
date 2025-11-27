@@ -54,7 +54,7 @@ public class PreOrderService {
             String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получаем все бронирования ресторана
@@ -157,7 +157,7 @@ public class PreOrderService {
     
     public PreOrderResponse getPreOrder(Long restaurantId, Long preOrderId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получаем предзаказ (это booking_pre_order запись)
@@ -180,7 +180,7 @@ public class PreOrderService {
     @Transactional
     public PreOrderResponse cancelPreOrder(Long restaurantId, Long preOrderId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получаем предзаказ

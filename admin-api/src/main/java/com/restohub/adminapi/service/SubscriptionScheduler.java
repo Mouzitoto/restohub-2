@@ -55,7 +55,7 @@ public class SubscriptionScheduler {
         
         // Находим все активные подписки со статусом ACTIVATED
         List<RestaurantSubscription> activatedSubscriptions = subscriptionRepository
-                .findByStatus(SubscriptionStatus.ACTIVATED);
+                .findByStatusAndIsActiveTrue(SubscriptionStatus.ACTIVATED);
         
         int count = 0;
         java.time.LocalDate today = java.time.LocalDate.now();

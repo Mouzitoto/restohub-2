@@ -43,7 +43,7 @@ public class AnalyticsService {
             Long restaurantId, LocalDate dateFrom, LocalDate dateTo, String groupBy) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация дат
@@ -104,7 +104,7 @@ public class AnalyticsService {
             Long restaurantId, LocalDate dateFrom, LocalDate dateTo, String groupBy) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация дат
@@ -176,7 +176,7 @@ public class AnalyticsService {
     
     public ClientAnalyticsResponse getClientAnalytics(Long restaurantId, LocalDate dateFrom, LocalDate dateTo) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация дат
@@ -242,7 +242,7 @@ public class AnalyticsService {
     
     public AnalyticsOverviewResponse getOverview(Long restaurantId, LocalDate dateFrom, LocalDate dateTo) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация дат
@@ -335,7 +335,7 @@ public class AnalyticsService {
     
     public String exportData(Long restaurantId, String type, String format, LocalDate dateFrom, LocalDate dateTo) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация дат

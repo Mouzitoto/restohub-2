@@ -3,6 +3,7 @@ package com.restohub.adminapi.service;
 import com.restohub.adminapi.dto.CreateRestaurantRequest;
 import com.restohub.adminapi.dto.ImageResponse;
 import com.restohub.adminapi.dto.RestaurantResponse;
+import com.restohub.adminapi.dto.SubscriptionResponse;
 import com.restohub.adminapi.entity.*;
 import com.restohub.adminapi.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,9 @@ class RestaurantServiceTest {
     
     @Mock
     private ImageService imageService;
+    
+    @Mock
+    private SubscriptionService subscriptionService;
     
     @InjectMocks
     private RestaurantService restaurantService;
@@ -228,7 +232,7 @@ class RestaurantServiceTest {
         image.setId(123L);
         image.setIsActive(true);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         try {
             doReturn(imageResponse).when(imageService).uploadImage(any(MultipartFile.class));
@@ -251,7 +255,7 @@ class RestaurantServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         try {
             verify(imageService, times(1)).uploadImage(any(MultipartFile.class));
         } catch (IOException e) {
@@ -279,7 +283,7 @@ class RestaurantServiceTest {
         image.setId(124L);
         image.setIsActive(true);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         try {
             doReturn(imageResponse).when(imageService).uploadImage(any(MultipartFile.class));
@@ -302,7 +306,7 @@ class RestaurantServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         try {
             verify(imageService, times(1)).uploadImage(any(MultipartFile.class));
         } catch (IOException e) {
@@ -321,7 +325,7 @@ class RestaurantServiceTest {
                 "test image content".getBytes()
         );
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         
         // Act & Assert
@@ -333,7 +337,7 @@ class RestaurantServiceTest {
             }
         });
         
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         try {
             verify(imageService, never()).uploadImage(any());
         } catch (IOException e) {
@@ -351,7 +355,7 @@ class RestaurantServiceTest {
                 "test image content".getBytes()
         );
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(999L))
+        when(restaurantRepository.findById(999L))
                 .thenReturn(Optional.empty());
         
         // Act & Assert
@@ -363,7 +367,7 @@ class RestaurantServiceTest {
             }
         });
         
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(999L);
+        verify(restaurantRepository, times(1)).findById(999L);
         try {
             verify(imageService, never()).uploadImage(any());
         } catch (IOException e) {
@@ -379,7 +383,7 @@ class RestaurantServiceTest {
         oldLogo.setIsActive(true);
         restaurant.setLogoImage(oldLogo);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(restaurantRepository.save(any(Restaurant.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -391,7 +395,7 @@ class RestaurantServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         verify(restaurantRepository, times(1)).save(any(Restaurant.class));
         verify(imageService, times(1)).deleteImage(123L);
     }
@@ -404,7 +408,7 @@ class RestaurantServiceTest {
         oldBg.setIsActive(true);
         restaurant.setBgImage(oldBg);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(restaurantRepository.save(any(Restaurant.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -416,7 +420,7 @@ class RestaurantServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         verify(restaurantRepository, times(1)).save(any(Restaurant.class));
         verify(imageService, times(1)).deleteImage(124L);
     }
@@ -424,7 +428,7 @@ class RestaurantServiceTest {
     @Test
     void deleteRestaurantImage_InvalidType_ThrowsException() {
         // Arrange
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         
         // Act & Assert
@@ -432,14 +436,14 @@ class RestaurantServiceTest {
             restaurantService.deleteRestaurantImage(1L, "invalid");
         });
         
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(1L);
+        verify(restaurantRepository, times(1)).findById(1L);
         verify(imageService, never()).deleteImage(any());
     }
     
     @Test
     void deleteRestaurantImage_RestaurantNotFound_ThrowsException() {
         // Arrange
-        when(restaurantRepository.findByIdAndIsActiveTrue(999L))
+        when(restaurantRepository.findById(999L))
                 .thenReturn(Optional.empty());
         
         // Act & Assert
@@ -447,7 +451,7 @@ class RestaurantServiceTest {
             restaurantService.deleteRestaurantImage(999L, "logo");
         });
         
-        verify(restaurantRepository, times(1)).findByIdAndIsActiveTrue(999L);
+        verify(restaurantRepository, times(1)).findById(999L);
         verify(imageService, never()).deleteImage(any());
     }
     
@@ -491,6 +495,72 @@ class RestaurantServiceTest {
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
+    }
+    
+    @Test
+    void testActivateRestaurant_Success() {
+        // Arrange
+        restaurant.setIsActive(false);
+        
+        SubscriptionResponse subscriptionResponse = new SubscriptionResponse();
+        subscriptionResponse.setIsActive(true);
+        subscriptionResponse.setRestaurantId(restaurant.getId());
+        
+        when(restaurantRepository.findById(restaurant.getId()))
+                .thenReturn(Optional.of(restaurant));
+        when(subscriptionService.getRestaurantSubscription(restaurant.getId()))
+                .thenReturn(subscriptionResponse);
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenReturn(restaurant);
+        
+        // Act
+        RestaurantResponse response = restaurantService.activateRestaurant(restaurant.getId());
+        
+        // Assert
+        assertNotNull(response);
+        assertTrue(restaurant.getIsActive());
+        verify(restaurantRepository, times(1)).save(restaurant);
+    }
+    
+    @Test
+    void testActivateRestaurant_NoActiveSubscription() {
+        // Arrange
+        restaurant.setIsActive(false);
+        
+        SubscriptionResponse subscriptionResponse = new SubscriptionResponse();
+        subscriptionResponse.setIsActive(false);
+        subscriptionResponse.setRestaurantId(restaurant.getId());
+        
+        when(restaurantRepository.findById(restaurant.getId()))
+                .thenReturn(Optional.of(restaurant));
+        when(subscriptionService.getRestaurantSubscription(restaurant.getId()))
+                .thenReturn(subscriptionResponse);
+        
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            restaurantService.activateRestaurant(restaurant.getId());
+        });
+        assertFalse(restaurant.getIsActive());
+        verify(restaurantRepository, never()).save(any(Restaurant.class));
+    }
+    
+    @Test
+    void testDeactivateRestaurant_Success() {
+        // Arrange
+        restaurant.setIsActive(true);
+        
+        when(restaurantRepository.findById(restaurant.getId()))
+                .thenReturn(Optional.of(restaurant));
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenReturn(restaurant);
+        
+        // Act
+        RestaurantResponse response = restaurantService.deactivateRestaurant(restaurant.getId());
+        
+        // Assert
+        assertNotNull(response);
+        assertFalse(restaurant.getIsActive());
+        verify(restaurantRepository, times(1)).save(restaurant);
     }
 }
 

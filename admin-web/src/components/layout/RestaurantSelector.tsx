@@ -95,7 +95,21 @@ export default function RestaurantSelector() {
                   }
                 }}
               >
-                {restaurant.name}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{restaurant.name}</span>
+                  {!restaurant.isActive && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#dc3545',
+                        marginLeft: '0.5rem',
+                        fontWeight: 'normal',
+                      }}
+                    >
+                      (деактивирован)
+                    </span>
+                  )}
+                </div>
               </button>
             ))}
           </div>

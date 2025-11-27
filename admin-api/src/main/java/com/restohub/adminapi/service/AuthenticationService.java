@@ -142,7 +142,7 @@ public class AuthenticationService {
             
             for (UserRestaurant userRestaurant : userRestaurants) {
                 Restaurant restaurant = userRestaurant.getRestaurant();
-                if (restaurant != null && restaurant.getIsActive()) {
+                if (restaurant != null) {
                     
                     // Получаем активную подписку
                     List<RestaurantSubscription> subscriptions = restaurantSubscriptionRepository
@@ -168,6 +168,7 @@ public class AuthenticationService {
                     restaurants.add(new UserInfoResponse.RestaurantInfo(
                             restaurant.getId(),
                             restaurant.getName(),
+                            restaurant.getIsActive(),
                             subscriptionInfo
                     ));
                 }

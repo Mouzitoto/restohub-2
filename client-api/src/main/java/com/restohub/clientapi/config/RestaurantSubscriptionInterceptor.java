@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -34,7 +35,7 @@ public class RestaurantSubscriptionInterceptor implements HandlerInterceptor {
     }
     
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) throws Exception {
         String path = request.getRequestURI();
         
         // Пропускаем список ресторанов (фильтрация будет в контроллере)
@@ -50,11 +51,15 @@ public class RestaurantSubscriptionInterceptor implements HandlerInterceptor {
             return true;
         }
         
-        // Проверяем активную подписку
+        // Проверяем активную подписку у ресторана
+        // hasActiveSubscription проверяет:
+        // 1. Существование и активность ресторана (isActive = true)
+        // 2. Наличие активной подписки (isActive = true)
+        // 3. Актуальность подписки (startDate <= today <= endDate)
         boolean hasActiveSubscription = subscriptionCheckService.hasActiveSubscription(restaurantId);
         
         if (!hasActiveSubscription) {
-            logger.debug("Restaurant {} does not have active subscription, returning 404", restaurantId);
+            logger.debug("Restaurant {} does not have active subscription or is inactive, returning 404", restaurantId);
             
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.setContentType("application/json");
@@ -70,6 +75,7 @@ public class RestaurantSubscriptionInterceptor implements HandlerInterceptor {
             return false;
         }
         
+        logger.debug("Restaurant {} has active subscription, allowing request", restaurantId);
         return true;
     }
     

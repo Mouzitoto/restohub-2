@@ -26,7 +26,7 @@ const restaurantSchema = z.object({
 type RestaurantFormData = z.infer<typeof restaurantSchema>
 
 export default function RestaurantEditPage() {
-  const { currentRestaurant, role } = useApp()
+  const { currentRestaurant, role, refreshUserInfo } = useApp()
   const [logoImageId, setLogoImageId] = useState<number | null>(null)
   const [bgImageId, setBgImageId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -132,6 +132,51 @@ export default function RestaurantEditPage() {
       setValue('isActive', restaurantData.isActive)
     }
     setIsEditingInfo(false)
+  }
+
+  const handleActivate = async () => {
+    if (!currentRestaurant) return
+
+    setIsLoading(true)
+    try {
+      await apiClient.instance.put<Restaurant>(
+        `/admin-api/r/${currentRestaurant.id}/activate`
+      )
+      toast.success('Ресторан активирован')
+      await loadRestaurant()
+      // Обновляем контекст, чтобы уведомления обновились
+      await refreshUserInfo()
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.exceptionName === 'NO_ACTIVE_SUBSCRIPTION'
+        ? 'Нельзя активировать ресторан без активной подписки'
+        : error.response?.data?.message || 'Ошибка активации ресторана'
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeactivate = async () => {
+    if (!currentRestaurant) return
+
+    if (!confirm('Вы уверены, что хотите деактивировать ресторан? Ресторан станет невидимым для пользователей.')) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await apiClient.instance.put<Restaurant>(
+        `/admin-api/r/${currentRestaurant.id}/deactivate`
+      )
+      toast.success('Ресторан деактивирован')
+      await loadRestaurant()
+      // Обновляем контекст, чтобы уведомления обновились
+      await refreshUserInfo()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Ошибка деактивации ресторана')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleImageUpload = async (file: File, imageType: 'logo' | 'background') => {
@@ -325,6 +370,48 @@ export default function RestaurantEditPage() {
             <div style={{ marginBottom: '1rem' }}>
               <strong>Активен:</strong> {restaurantData?.isActive ? 'Да' : 'Нет'}
             </div>
+            {(role === 'ADMIN' || role === 'MANAGER') && (
+              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                {!restaurantData?.isActive && (
+                  <button
+                    type="button"
+                    onClick={handleActivate}
+                    disabled={isLoading}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Активировать
+                  </button>
+                )}
+                {restaurantData?.isActive && (
+                  <button
+                    type="button"
+                    onClick={handleDeactivate}
+                    disabled={isLoading}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Деактивировать
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

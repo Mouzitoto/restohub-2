@@ -19,5 +19,6 @@ public interface RestaurantSubscriptionRepository extends JpaRepository<Restaura
     List<RestaurantSubscription> findByStatusAndCreatedAtBefore(SubscriptionStatus status, LocalDateTime date);
     List<RestaurantSubscription> findByRestaurantIdAndStatus(Long restaurantId, SubscriptionStatus status);
     List<RestaurantSubscription> findByStatus(SubscriptionStatus status);
+    List<RestaurantSubscription> findByStatusAndIsActiveTrue(SubscriptionStatus status);
 }
 

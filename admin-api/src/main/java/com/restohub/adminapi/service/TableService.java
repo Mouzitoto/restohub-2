@@ -60,7 +60,7 @@ public class TableService {
     @Transactional
     public TableResponse createTable(Long restaurantId, CreateTableRequest request) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка существования и принадлежности помещения к ресторану
@@ -103,7 +103,7 @@ public class TableService {
             Integer minCapacity, Integer maxCapacity, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации
@@ -270,7 +270,7 @@ public class TableService {
     
     public TableMapResponse getTableMap(Long restaurantId, Long floorId, Long roomId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получаем все этажи ресторана

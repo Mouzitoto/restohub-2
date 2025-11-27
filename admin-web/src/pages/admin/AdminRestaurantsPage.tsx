@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../../context/ToastContext'
-import type { Restaurant, PaginationResponse } from '../../types'
+import type { Restaurant, PaginationResponse, UserInfo } from '../../types'
 
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Название обязательно').max(255),
@@ -28,7 +28,7 @@ const restaurantSchema = z.object({
 type RestaurantFormData = z.infer<typeof restaurantSchema>
 
 export default function AdminRestaurantsPage() {
-  const { role, setCurrentRestaurant, refreshRestaurants } = useApp()
+  const { role, setCurrentRestaurant, refreshRestaurants, refreshUserInfo } = useApp()
   const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -100,17 +100,6 @@ export default function AdminRestaurantsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Вы уверены, что хотите удалить этот ресторан?')) return
-
-    try {
-      await apiClient.instance.delete(`/admin-api/r/${id}`)
-      toast.success('Ресторан удален')
-      loadRestaurants()
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка удаления')
-    }
-  }
 
   // ADMIN и MANAGER могут видеть и создавать рестораны
   if (role !== 'ADMIN' && role !== 'MANAGER') {
@@ -170,29 +159,32 @@ export default function AdminRestaurantsPage() {
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <button
-                    onClick={() => {
-                      setEditingRestaurant(restaurant)
-                      reset({
-                        name: restaurant.name,
-                        address: restaurant.address || '',
-                        phone: restaurant.phone || '',
-                        whatsapp: restaurant.whatsapp || '',
-                        instagram: restaurant.instagram || '',
-                        description: restaurant.description || '',
-                        workingHours: restaurant.workingHours || '',
-                        managerLanguageCode: restaurant.managerLanguageCode || '',
-                      })
-                      setIsModalOpen(true)
+                    onClick={async () => {
+                      // Обновляем данные ресторанов из API, чтобы получить актуальную информацию
+                      await refreshUserInfo()
+                      // Получаем обновленные данные ресторанов
+                      const response = await apiClient.instance.get<UserInfo>('/admin-api/auth/me')
+                      const updatedRestaurant = response.data.restaurants?.find((r: Restaurant) => r.id === restaurant.id)
+                      if (updatedRestaurant) {
+                        // Выбираем ресторан (как будто выбрали в дропдауне)
+                        setCurrentRestaurant(updatedRestaurant)
+                        // Переходим на страницу "Мой ресторан"
+                        navigate('/restaurant')
+                      } else {
+                        toast.error('Не удалось загрузить информацию о ресторане')
+                      }
                     }}
-                    style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                    }}
                   >
-                    Редактировать
-                  </button>
-                  <button
-                    onClick={() => handleDelete(restaurant.id)}
-                    style={{ padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#f44336' }}
-                  >
-                    Удалить
+                    Переключиться
                   </button>
                 </td>
               </tr>

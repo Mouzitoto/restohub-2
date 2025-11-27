@@ -65,7 +65,7 @@ public class RoomService {
     @Transactional
     public RoomResponse createRoom(Long restaurantId, CreateRoomRequest request) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка существования и принадлежности этажа к ресторану
@@ -97,7 +97,7 @@ public class RoomService {
             Long restaurantId, Integer limit, Integer offset, Long floorId, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации

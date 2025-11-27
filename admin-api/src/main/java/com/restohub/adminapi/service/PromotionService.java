@@ -55,7 +55,7 @@ public class PromotionService {
     @Transactional
     public PromotionResponse createPromotion(Long restaurantId, CreatePromotionRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка существования типа промо-события
@@ -127,7 +127,7 @@ public class PromotionService {
             Boolean isCurrent, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации

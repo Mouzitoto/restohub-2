@@ -56,7 +56,7 @@ public class MenuItemService {
     @Transactional
     public MenuItemResponse createMenuItem(Long restaurantId, CreateMenuItemRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка существования категории
@@ -95,7 +95,7 @@ public class MenuItemService {
             String search, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации
@@ -233,7 +233,7 @@ public class MenuItemService {
     @Transactional
     public void reorderMenuItems(Long restaurantId, ReorderMenuItemsRequest request) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         List<Long> itemIds = request.getItems().stream()

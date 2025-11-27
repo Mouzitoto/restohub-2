@@ -38,7 +38,7 @@ public class FloorService {
     @Transactional
     public FloorResponse createFloor(Long restaurantId, CreateFloorRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка уникальности номера этажа
@@ -60,7 +60,7 @@ public class FloorService {
             Long restaurantId, Integer limit, Integer offset, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Сортировка

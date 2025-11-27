@@ -622,5 +622,136 @@ class RestaurantControllerTest extends BaseControllerTest {
 
         verify(restaurantService, times(1)).deleteRestaurantImage(999L, "logo");
     }
+
+    // ========== PUT /r/{id}/activate - активация ресторана ==========
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testActivateRestaurant_Success() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setIsActive(true);
+
+        when(restaurantService.activateRestaurant(1L))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/activate")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.isActive").value(true));
+
+        verify(restaurantService, times(1)).activateRestaurant(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void testActivateRestaurant_AdminAccess() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setIsActive(true);
+
+        when(restaurantService.activateRestaurant(1L))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/activate")
+                        .with(csrf()))
+                .andExpect(status().isOk());
+
+        verify(restaurantService, times(1)).activateRestaurant(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testActivateRestaurant_NoActiveSubscription() throws Exception {
+        // Arrange
+        when(restaurantService.activateRestaurant(1L))
+                .thenThrow(new RuntimeException("NO_ACTIVE_SUBSCRIPTION"));
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/activate")
+                        .with(csrf()))
+                .andExpect(status().isBadRequest());
+
+        verify(restaurantService, times(1)).activateRestaurant(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testActivateRestaurant_NotFound() throws Exception {
+        // Arrange
+        when(restaurantService.activateRestaurant(999L))
+                .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(put("/r/999/activate")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+
+        verify(restaurantService, times(1)).activateRestaurant(999L);
+    }
+
+    // ========== PUT /r/{id}/deactivate - деактивация ресторана ==========
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testDeactivateRestaurant_Success() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setName("Test Restaurant");
+        response.setIsActive(false);
+
+        when(restaurantService.deactivateRestaurant(1L))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/deactivate")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        verify(restaurantService, times(1)).deactivateRestaurant(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void testDeactivateRestaurant_AdminAccess() throws Exception {
+        // Arrange
+        RestaurantResponse response = new RestaurantResponse();
+        response.setId(1L);
+        response.setIsActive(false);
+
+        when(restaurantService.deactivateRestaurant(1L))
+                .thenReturn(response);
+
+        // Act & Assert
+        mockMvc.perform(put("/r/1/deactivate")
+                        .with(csrf()))
+                .andExpect(status().isOk());
+
+        verify(restaurantService, times(1)).deactivateRestaurant(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void testDeactivateRestaurant_NotFound() throws Exception {
+        // Arrange
+        when(restaurantService.deactivateRestaurant(999L))
+                .thenThrow(new RuntimeException("RESTAURANT_NOT_FOUND"));
+
+        // Act & Assert
+        mockMvc.perform(put("/r/999/deactivate")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+
+        verify(restaurantService, times(1)).deactivateRestaurant(999L);
+    }
 }
 

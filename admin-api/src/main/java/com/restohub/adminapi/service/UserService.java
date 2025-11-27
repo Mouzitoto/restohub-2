@@ -66,7 +66,7 @@ public class UserService {
         // Проверка существования ресторанов (для MANAGER)
         if (request.getRestaurantIds() != null && !request.getRestaurantIds().isEmpty()) {
             for (Long restaurantId : request.getRestaurantIds()) {
-                restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                restaurantRepository.findById(restaurantId)
                         .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
             }
         }
@@ -193,7 +193,7 @@ public class UserService {
             // Создание новых связей (для MANAGER)
             if ("MANAGER".equals(role.getCode()) && request.getRestaurantIds() != null && !request.getRestaurantIds().isEmpty()) {
                 for (Long restaurantId : request.getRestaurantIds()) {
-                    Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                    Restaurant restaurant = restaurantRepository.findById(restaurantId)
                             .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
                     UserRestaurant userRestaurant = new UserRestaurant();
                     userRestaurant.setUser(user);
@@ -207,7 +207,7 @@ public class UserService {
             userRestaurantRepository.findByUserId(userId).forEach(userRestaurantRepository::delete);
             
             for (Long restaurantId : request.getRestaurantIds()) {
-                Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+                Restaurant restaurant = restaurantRepository.findById(restaurantId)
                         .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
                 UserRestaurant userRestaurant = new UserRestaurant();
                 userRestaurant.setUser(user);

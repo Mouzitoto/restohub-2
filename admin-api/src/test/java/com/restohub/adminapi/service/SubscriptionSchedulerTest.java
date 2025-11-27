@@ -84,7 +84,7 @@ class SubscriptionSchedulerTest {
     void testCheckActiveSubscriptionsExpiration_ExpiresActivatedSubscriptions() {
         // Arrange
         List<RestaurantSubscription> activatedSubscriptions = Arrays.asList(activatedSubscription);
-        when(subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVATED))
+        when(subscriptionRepository.findByStatusAndIsActiveTrue(SubscriptionStatus.ACTIVATED))
                 .thenReturn(activatedSubscriptions);
         when(subscriptionRepository.save(any(RestaurantSubscription.class)))
                 .thenReturn(activatedSubscription);
@@ -103,7 +103,7 @@ class SubscriptionSchedulerTest {
         // Arrange
         activatedSubscription.setEndDate(LocalDate.now().plusDays(10));
         List<RestaurantSubscription> activatedSubscriptions = Arrays.asList(activatedSubscription);
-        when(subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVATED))
+        when(subscriptionRepository.findByStatusAndIsActiveTrue(SubscriptionStatus.ACTIVATED))
                 .thenReturn(activatedSubscriptions);
         
         // Act

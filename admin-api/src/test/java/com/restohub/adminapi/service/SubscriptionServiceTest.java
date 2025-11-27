@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,7 +73,7 @@ class SubscriptionServiceTest {
         CreateSubscriptionRequest request = new CreateSubscriptionRequest();
         request.setSubscriptionTypeId(1L);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(subscriptionTypeRepository.findByIdAndIsActiveTrue(1L))
                 .thenReturn(Optional.of(subscriptionType));
@@ -103,13 +104,17 @@ class SubscriptionServiceTest {
         CreateSubscriptionRequest request = new CreateSubscriptionRequest();
         request.setSubscriptionTypeId(1L);
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.empty());
         
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             subscriptionService.createSubscription(1L, request);
         });
+        
+        verify(restaurantRepository, times(1)).findById(1L);
+        verify(subscriptionTypeRepository, never()).findByIdAndIsActiveTrue(any());
+        verify(subscriptionRepository, never()).findByRestaurantId(any());
     }
     
     @Test
@@ -122,13 +127,18 @@ class SubscriptionServiceTest {
         request.setExternalTransactionId("TXN-123");
         
         subscription.setStatus(SubscriptionStatus.DRAFT);
+        restaurant.setIsActive(false);
         
         when(subscriptionRepository.findByPaymentReference("SUB-2024-123456"))
                 .thenReturn(Optional.of(subscription));
         when(paymentRepository.findByExternalTransactionId("TXN-123"))
                 .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByRestaurantIdAndIsActiveTrue(restaurant.getId()))
+                .thenReturn(Collections.emptyList());
         when(subscriptionRepository.save(any(RestaurantSubscription.class)))
                 .thenReturn(subscription);
+        when(restaurantRepository.save(any(Restaurant.class)))
+                .thenReturn(restaurant);
         when(paymentRepository.save(any(SubscriptionPayment.class)))
                 .thenReturn(new SubscriptionPayment());
         
@@ -141,7 +151,9 @@ class SubscriptionServiceTest {
         assertTrue(subscription.getIsActive());
         assertNotNull(subscription.getStartDate());
         assertNotNull(subscription.getEndDate());
+        assertTrue(restaurant.getIsActive()); // Ресторан должен быть активирован
         verify(paymentRepository, times(1)).save(any(SubscriptionPayment.class));
+        verify(restaurantRepository, times(1)).save(restaurant);
     }
     
     @Test
@@ -194,7 +206,7 @@ class SubscriptionServiceTest {
     @Test
     void testGeneratePaymentReference_Unique() {
         // Arrange
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(subscriptionTypeRepository.findByIdAndIsActiveTrue(1L))
                 .thenReturn(Optional.of(subscriptionType));
@@ -229,7 +241,7 @@ class SubscriptionServiceTest {
         existingSubscription2.setId(2L);
         existingSubscription2.setPaymentReference("SUB-1-2");
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(subscriptionTypeRepository.findByIdAndIsActiveTrue(1L))
                 .thenReturn(Optional.of(subscriptionType));
@@ -278,7 +290,7 @@ class SubscriptionServiceTest {
 
         List<RestaurantSubscription> subscriptions = Arrays.asList(subscription1, subscription2);
 
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(subscriptionRepository.findByRestaurantId(1L))
                 .thenReturn(subscriptions);
@@ -304,19 +316,22 @@ class SubscriptionServiceTest {
     @Test
     void testGetRestaurantSubscriptions_RestaurantNotFound() {
         // Arrange
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             subscriptionService.getRestaurantSubscriptions(1L);
         });
+        
+        verify(restaurantRepository, times(1)).findById(1L);
+        verify(subscriptionRepository, never()).findByRestaurantId(any());
     }
 
     @Test
     void testGetRestaurantSubscriptions_EmptyList() {
         // Arrange
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(subscriptionRepository.findByRestaurantId(1L))
                 .thenReturn(Arrays.asList());

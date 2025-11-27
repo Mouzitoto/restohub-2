@@ -21,6 +21,7 @@ public class UserInfoResponse {
     public static class RestaurantInfo {
         private Long id;
         private String name;
+        private Boolean isActive;
         private SubscriptionInfo subscription;
     }
     

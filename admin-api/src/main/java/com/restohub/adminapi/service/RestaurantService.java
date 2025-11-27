@@ -42,6 +42,7 @@ public class RestaurantService {
     private final RestaurantSubscriptionRepository restaurantSubscriptionRepository;
     private final UserRepository userRepository;
     private final ImageService imageService;
+    private final SubscriptionService subscriptionService;
     
     @Autowired
     public RestaurantService(
@@ -50,13 +51,15 @@ public class RestaurantService {
             UserRestaurantRepository userRestaurantRepository,
             RestaurantSubscriptionRepository restaurantSubscriptionRepository,
             UserRepository userRepository,
-            ImageService imageService) {
+            ImageService imageService,
+            SubscriptionService subscriptionService) {
         this.restaurantRepository = restaurantRepository;
         this.imageRepository = imageRepository;
         this.userRestaurantRepository = userRestaurantRepository;
         this.restaurantSubscriptionRepository = restaurantSubscriptionRepository;
         this.userRepository = userRepository;
         this.imageService = imageService;
+        this.subscriptionService = subscriptionService;
     }
     
     @Transactional
@@ -104,7 +107,7 @@ public class RestaurantService {
         
         restaurant.setLogoImage(logoImage);
         restaurant.setBgImage(bgImage);
-        restaurant.setIsActive(true);
+        restaurant.setIsActive(false);
         
         restaurant = restaurantRepository.save(restaurant);
         
@@ -185,13 +188,8 @@ public class RestaurantService {
         // Фильтр по активности
         if (isActive != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
-        } else if (isAdmin) {
-            // Для ADMIN по умолчанию показываем активные
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), true));
-        } else {
-            // Для MANAGER всегда только активные
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), true));
         }
+        // Если isActive не указан, показываем все рестораны (и активные, и деактивированные)
         
         // Поиск по названию или адресу
         if (search != null && !search.trim().isEmpty()) {
@@ -225,7 +223,7 @@ public class RestaurantService {
     }
     
     public RestaurantResponse getRestaurant(Long id) {
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(id)
+        Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         return toResponse(restaurant);
@@ -233,7 +231,7 @@ public class RestaurantService {
     
     @Transactional
     public RestaurantResponse updateRestaurant(Long id, UpdateRestaurantRequest request) {
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(id)
+        Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Определяем роль пользователя
@@ -320,7 +318,7 @@ public class RestaurantService {
     
     @Transactional
     public void deleteRestaurant(Long id) {
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(id)
+        Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Проверка использования ресторана
@@ -343,8 +341,36 @@ public class RestaurantService {
     }
     
     @Transactional
+    public RestaurantResponse activateRestaurant(Long id) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        // Проверка наличия активной подписки
+        SubscriptionResponse subscription = subscriptionService.getRestaurantSubscription(id);
+        if (!subscription.getIsActive()) {
+            throw new RuntimeException("NO_ACTIVE_SUBSCRIPTION");
+        }
+        
+        restaurant.setIsActive(true);
+        restaurant = restaurantRepository.save(restaurant);
+        
+        return toResponse(restaurant);
+    }
+    
+    @Transactional
+    public RestaurantResponse deactivateRestaurant(Long id) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
+        
+        restaurant.setIsActive(false);
+        restaurant = restaurantRepository.save(restaurant);
+        
+        return toResponse(restaurant);
+    }
+    
+    @Transactional
     public RestaurantResponse uploadRestaurantImage(Long restaurantId, MultipartFile file, String imageType) throws IOException {
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация типа изображения
@@ -384,7 +410,7 @@ public class RestaurantService {
     
     @Transactional
     public RestaurantResponse deleteRestaurantImage(Long restaurantId, String imageType) {
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация типа изображения

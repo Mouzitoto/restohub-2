@@ -55,7 +55,7 @@ public class BookingService {
             String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации
@@ -137,7 +137,7 @@ public class BookingService {
     
     public BookingResponse getBooking(Long restaurantId, Long bookingId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получение бронирования с проверкой принадлежности к ресторану
@@ -150,7 +150,7 @@ public class BookingService {
     @Transactional
     public BookingResponse cancelBooking(Long restaurantId, Long bookingId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получение бронирования с проверкой принадлежности к ресторану

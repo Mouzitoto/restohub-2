@@ -39,7 +39,7 @@ public class SubscriptionService {
     
     public SubscriptionResponse getRestaurantSubscription(Long restaurantId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Поиск активной подписки
@@ -67,7 +67,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse createSubscription(Long restaurantId, CreateSubscriptionRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Валидация типа подписки
@@ -113,12 +113,41 @@ public class SubscriptionService {
         subscription.setIsActive(true);
         subscription.setExternalTransactionId(request.getExternalTransactionId());
         
-        // Установка дат: startDate = paymentDate, endDate = paymentDate + 1 месяц
+        // Проверка существующих активных подписок для определения startDate
         LocalDate paymentDate = request.getPaymentDate().toLocalDate();
-        subscription.setStartDate(paymentDate);
-        subscription.setEndDate(paymentDate.plusMonths(1));
+        LocalDate startDate = paymentDate;
+        
+        Long subscriptionId = subscription.getId();
+        Long restaurantId = subscription.getRestaurant().getId();
+        
+        List<RestaurantSubscription> existingActiveSubscriptions = subscriptionRepository
+                .findByRestaurantIdAndIsActiveTrue(restaurantId)
+                .stream()
+                .filter(s -> s.getStatus() == SubscriptionStatus.ACTIVATED && 
+                            (subscriptionId == null || !s.getId().equals(subscriptionId)))
+                .collect(Collectors.toList());
+        
+        if (!existingActiveSubscriptions.isEmpty()) {
+            // Находим подписку с максимальной endDate
+            RestaurantSubscription latestSubscription = existingActiveSubscriptions.stream()
+                    .max((s1, s2) -> s1.getEndDate().compareTo(s2.getEndDate()))
+                    .orElse(null);
+            
+            if (latestSubscription != null && latestSubscription.getEndDate() != null) {
+                startDate = latestSubscription.getEndDate();
+            }
+        }
+        
+        // Установка дат: startDate = endDate существующей подписки (если есть), иначе paymentDate
+        subscription.setStartDate(startDate);
+        subscription.setEndDate(startDate.plusMonths(1));
         
         subscription = subscriptionRepository.save(subscription);
+        
+        // Активация ресторана при активации подписки
+        Restaurant restaurant = subscription.getRestaurant();
+        restaurant.setIsActive(true);
+        restaurantRepository.save(restaurant);
         
         // Сохранение записи в subscription_payments
         SubscriptionPayment payment = new SubscriptionPayment();
@@ -145,7 +174,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse updateRestaurantSubscription(Long restaurantId, UpdateSubscriptionRequest request) {
         // Проверка существования ресторана
-        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Поиск текущей подписки (активной или последней)
@@ -328,7 +357,7 @@ public class SubscriptionService {
     
     public List<SubscriptionListItemResponse> getRestaurantSubscriptions(Long restaurantId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получение всех подписок ресторана, отсортированных по дате создания (новые первые)

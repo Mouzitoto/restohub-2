@@ -97,7 +97,7 @@ class TableServiceTest {
         request.setPositionX2(BigDecimal.valueOf(20));
         request.setPositionY2(BigDecimal.valueOf(20));
         
-        when(restaurantRepository.findByIdAndIsActiveTrue(1L))
+        when(restaurantRepository.findById(1L))
                 .thenReturn(Optional.of(restaurant));
         when(roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(1L, 1L))
                 .thenReturn(Optional.of(room));

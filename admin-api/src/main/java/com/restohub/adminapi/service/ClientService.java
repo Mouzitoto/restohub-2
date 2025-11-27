@@ -47,7 +47,7 @@ public class ClientService {
             Long restaurantId, Integer limit, Integer offset, String search, String sortBy, String sortOrder) {
         
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Построение спецификации
@@ -99,7 +99,7 @@ public class ClientService {
     
     public ClientResponse getClient(Long restaurantId, Long clientId) {
         // Проверка существования ресторана
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         // Получение клиента
@@ -122,7 +122,7 @@ public class ClientService {
             Long restaurantId, Long clientId, Integer limit, Integer offset) {
         
         // Проверка существования ресторана и клиента
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         clientRepository.findById(clientId)
@@ -157,7 +157,7 @@ public class ClientService {
             Long restaurantId, Long clientId, Integer limit, Integer offset) {
         
         // Проверка существования ресторана и клиента
-        restaurantRepository.findByIdAndIsActiveTrue(restaurantId)
+        restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("RESTAURANT_NOT_FOUND"));
         
         clientRepository.findById(clientId)
