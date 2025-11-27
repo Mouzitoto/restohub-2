@@ -3,8 +3,6 @@ package com.restohub.adminapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restohub.adminapi.dto.*;
 import com.restohub.adminapi.service.RoomService;
-import com.restohub.adminapi.service.TableService;
-import com.restohub.adminapi.util.TablePositionUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -33,12 +31,6 @@ class RoomControllerTest extends BaseControllerTest {
 
     @MockBean
     private RoomService roomService;
-
-    @Autowired
-    private TableService tableService;
-
-    @Autowired
-    private TablePositionUtils tablePositionUtils;
 
     @Autowired
     private ObjectMapper objectMapper;

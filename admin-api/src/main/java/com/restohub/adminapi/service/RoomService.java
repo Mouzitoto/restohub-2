@@ -342,7 +342,7 @@ public class RoomService {
     @Transactional
     public List<TableResponse> updateTablePositions(Long restaurantId, Long roomId, List<UpdateTablePositionRequest> requests) {
         // Проверка принадлежности зала к ресторану
-        Room room = roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
+        roomRepository.findByIdAndRestaurantIdAndIsActiveTrue(roomId, restaurantId)
                 .orElseThrow(() -> new RuntimeException("ROOM_NOT_FOUND"));
         
         // Валидация координат и проверка пересечений
