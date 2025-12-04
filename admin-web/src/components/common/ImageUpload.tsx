@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import type { DragEvent } from 'react'
 import ImagePreview from './ImagePreview'
 import { useToast } from '../../context/ToastContext'
+import { getImageUploadErrorMessage } from '../../utils/imageUploadError'
 
 interface ImageUploadProps {
   currentImageId: number | null
@@ -69,7 +70,7 @@ export default function ImageUpload({
       // Загрузка к конкретной сущности, передаем File в callback
       await onImageUploaded(file)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Ошибка загрузки. Попробуйте позже'
+      const errorMessage = getImageUploadErrorMessage(err)
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {

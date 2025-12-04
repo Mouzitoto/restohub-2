@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../context/ToastContext'
+import { getImageUploadErrorMessage } from '../utils/imageUploadError'
 import type { Promotion, PromotionType } from '../types'
 
 const promotionSchema = z.object({
@@ -106,7 +107,7 @@ export default function PromotionsPage() {
       setImageId(response.data.imageId ?? null)
       toast.success('Изображение успешно загружено')
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+      toast.error(getImageUploadErrorMessage(error))
     } finally {
       setIsLoading(false)
     }

@@ -21,7 +21,7 @@ export default function Header() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {role === 'MANAGER' && <RestaurantSelector />}
+        {(role === 'MANAGER' || role === 'ADMIN') && <RestaurantSelector />}
         <UserMenu />
       </div>
     </header>

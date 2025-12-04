@@ -33,6 +33,13 @@ spring:
           starttls:
             enable: true
     from: ${MAIL_FROM:no-reply@restohub.com}
+  
+  servlet:
+    multipart:
+      # ВАЖНО: Эти значения должны совпадать с client_max_body_size в nginx/nginx.conf.template
+      # для location /admin-api (по умолчанию nginx имеет лимит 1MB, что вызывает ошибку 413)
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: ${SERVER_PORT:8082}

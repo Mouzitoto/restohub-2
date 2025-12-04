@@ -19,6 +19,7 @@ public class RestaurantListResponse {
     private BigDecimal latitude;
     private BigDecimal longitude;
     private Long logoId;
+    private Long backgroundId;
     private String description;
 }
 

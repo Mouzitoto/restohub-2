@@ -21,18 +21,23 @@ public class ImageController {
     }
     
     @GetMapping("/{imageId}")
-    public ResponseEntity<byte[]> getImage(@PathVariable Long imageId) {
+    public ResponseEntity<byte[]> getImage(
+            @PathVariable Long imageId,
+            @RequestParam(value = "preview", defaultValue = "false") boolean preview) {
         Image image = imageRepository.findByIdAndIsActiveTrue(imageId)
                 .orElseThrow(() -> new RuntimeException("Image not found"));
+        
+        byte[] imageData = preview ? image.getPreviewData() : image.getImageData();
+        long contentLength = preview ? image.getPreviewData().length : image.getFileSize();
         
         HttpHeaders headers = new HttpHeaders();
         String mimeType = image.getMimeType();
         if (mimeType != null) {
             headers.setContentType(MediaType.parseMediaType(mimeType));
         }
-        headers.setContentLength(image.getFileSize());
+        headers.setContentLength(contentLength);
         
-        return new ResponseEntity<>(image.getImageData(), headers, HttpStatus.OK);
+        return new ResponseEntity<>(imageData, headers, HttpStatus.OK);
     }
 }
 

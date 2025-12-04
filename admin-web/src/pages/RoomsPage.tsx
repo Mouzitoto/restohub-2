@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../context/ToastContext'
+import { getImageUploadErrorMessage } from '../utils/imageUploadError'
 import type { Room, Floor, RoomLayout } from '../types'
 
 const roomSchema = z.object({
@@ -128,7 +129,7 @@ export default function RoomsPage() {
         toast.info('Расположения столов были очищены')
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+      toast.error(getImageUploadErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -206,7 +207,15 @@ export default function RoomsPage() {
       setImageFile(null)
       loadRooms()
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка сохранения')
+      // Если ошибка связана с загрузкой изображения (413 или ошибка при POST на /image)
+      const isImageUploadError = error?.response?.status === 413 || 
+        (error?.config?.url?.includes('/image') && error?.response?.status >= 400)
+      
+      if (isImageUploadError) {
+        toast.error(getImageUploadErrorMessage(error))
+      } else {
+        toast.error(error.response?.data?.message || 'Ошибка сохранения')
+      }
     } finally {
       setIsLoading(false)
     }

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart, Eye, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart, Eye, Calendar, X } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
@@ -40,6 +40,7 @@ export function MenuPage() {
   const [showWaiterModal, setShowWaiterModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
@@ -182,7 +183,17 @@ export function MenuPage() {
     return (
       <Card key={dish.id} className="p-3">
         <div className="flex gap-3">
-          <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
+          <div 
+            className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (dish.imageUrl) {
+                // Заменяем превью на полное изображение
+                const fullImageUrl = dish.imageUrl.replace('?preview=true', '').replace('&preview=true', '');
+                setSelectedImage({ url: fullImageUrl, alt: dish.name });
+              }
+            }}
+          >
             <ImageWithFallback
               src={dish.imageUrl}
               alt={dish.name}
@@ -398,9 +409,18 @@ export function MenuPage() {
                     }`}
                   >
                     <div 
-                      className="w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all"
+                      className="w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer"
                       style={{ 
                         borderColor: selectedFilter === category.id ? restaurant.primaryColor : '#e5e7eb'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const imageUrl = category.imageUrl || category.dishes[0]?.imageUrl;
+                        if (imageUrl) {
+                          // Заменяем превью на полное изображение
+                          const fullImageUrl = imageUrl.replace('?preview=true', '').replace('&preview=true', '');
+                          setSelectedImage({ url: fullImageUrl, alt: category.name });
+                        }
                       }}
                     >
                       <ImageWithFallback
@@ -648,6 +668,35 @@ export function MenuPage() {
               className="w-full h-12"
             >
               Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Preview Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent className="sm:max-w-[90vw] max-w-[95vw] p-0 bg-transparent border-0 shadow-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedImage?.alt || 'Просмотр изображения'}</DialogTitle>
+            <DialogDescription>Изображение в полном размере</DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full flex items-center justify-center">
+            {selectedImage && (
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.alt}
+                className="max-w-full max-h-[85vh] w-auto h-auto"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 bg-black/50 text-white hover:bg-black/70 z-10"
+              onClick={() => setSelectedImage(null)}
+              aria-label="Закрыть"
+            >
+              <X className="w-5 h-5" />
             </Button>
           </div>
         </DialogContent>

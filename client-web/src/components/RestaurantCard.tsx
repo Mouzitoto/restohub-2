@@ -19,7 +19,7 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
       {/* Image */}
       <div className="relative h-48 bg-gray-100">
         <ImageWithFallback
-          src={restaurant.logoUrl}
+          src={restaurant.backgroundUrl}
           alt={restaurant.name}
           className="w-full h-full object-cover"
         />

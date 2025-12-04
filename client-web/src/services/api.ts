@@ -166,9 +166,8 @@ export const restaurantApi = {
 };
 
 // Helper function to get image URL from imageId
-// TODO: Replace with actual image service endpoint when available
-export const getImageUrl = (imageId?: number): string | undefined => {
+export const getImageUrl = (imageId?: number, preview: boolean = false): string | undefined => {
   if (!imageId) return undefined;
-  // Placeholder - should be replaced with actual image service
-  return `${API_BASE_URL}/client-api/images/${imageId}`;
+  const previewParam = preview ? '?preview=true' : '';
+  return `${API_BASE_URL}/client-api/images/${imageId}${previewParam}`;
 };

@@ -36,6 +36,7 @@ server {
 
     # Client API
     location /client-api {
+        client_max_body_size 10M;
         proxy_pass http://client-api:8081;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -45,6 +46,7 @@ server {
 
     # Admin API
     location /admin-api {
+        client_max_body_size 10M;
         proxy_pass http://admin-api:8082;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

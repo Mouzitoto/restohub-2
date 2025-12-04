@@ -27,6 +27,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final UserRestaurantRepository userRestaurantRepository;
     private final RestaurantSubscriptionRepository restaurantSubscriptionRepository;
+    private final RestaurantRepository restaurantRepository;
     
     @Value("${jwt.access-token-expiration:300}")
     private long accessTokenExpiration;
@@ -37,13 +38,15 @@ public class AuthenticationService {
             JwtTokenProvider jwtTokenProvider,
             PasswordEncoder passwordEncoder,
             UserRestaurantRepository userRestaurantRepository,
-            RestaurantSubscriptionRepository restaurantSubscriptionRepository) {
+            RestaurantSubscriptionRepository restaurantSubscriptionRepository,
+            RestaurantRepository restaurantRepository) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.userRestaurantRepository = userRestaurantRepository;
         this.restaurantSubscriptionRepository = restaurantSubscriptionRepository;
+        this.restaurantRepository = restaurantRepository;
     }
     
     @Transactional
@@ -136,7 +139,40 @@ public class AuthenticationService {
         User user = userOpt.get();
         List<UserInfoResponse.RestaurantInfo> restaurants = new ArrayList<>();
         
-        if ("MANAGER".equals(role)) {
+        if ("ADMIN".equals(role)) {
+            // Для админа получаем все рестораны
+            List<Restaurant> allRestaurants = restaurantRepository.findAll();
+            
+            for (Restaurant restaurant : allRestaurants) {
+                // Получаем активную подписку
+                List<RestaurantSubscription> subscriptions = restaurantSubscriptionRepository
+                        .findByRestaurantIdAndIsActiveTrue(restaurant.getId());
+                
+                UserInfoResponse.SubscriptionInfo subscriptionInfo = null;
+                if (!subscriptions.isEmpty()) {
+                    RestaurantSubscription subscription = subscriptions.get(0);
+                    LocalDate endDate = subscription.getEndDate();
+                    LocalDate now = LocalDate.now();
+                    long daysRemaining = ChronoUnit.DAYS.between(now, endDate);
+                    boolean isExpiringSoon = daysRemaining <= 7;
+                    
+                    subscriptionInfo = new UserInfoResponse.SubscriptionInfo(
+                            restaurant.getId(),
+                            subscription.getIsActive() && endDate.isAfter(now) || endDate.isEqual(now),
+                            endDate.toString(),
+                            (int) Math.max(0, daysRemaining),
+                            isExpiringSoon
+                    );
+                }
+                
+                restaurants.add(new UserInfoResponse.RestaurantInfo(
+                        restaurant.getId(),
+                        restaurant.getName(),
+                        restaurant.getIsActive(),
+                        subscriptionInfo
+                ));
+            }
+        } else if ("MANAGER".equals(role)) {
             // Получаем рестораны менеджера
             List<UserRestaurant> userRestaurants = userRestaurantRepository.findByUserId(user.getId());
             

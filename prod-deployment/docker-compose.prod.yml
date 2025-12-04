@@ -1,0 +1,213 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: resto-hub-postgres
+    environment:
+      POSTGRES_DB: restohub
+      POSTGRES_USER: restohub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-restohub}
+      # Оптимизация памяти для PostgreSQL
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=ru_RU.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restohub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для PostgreSQL
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+        reservations:
+          memory: 400M
+    restart: unless-stopped
+    # Оптимизация PostgreSQL через переменные окружения
+    command: >
+      postgres
+      -c shared_buffers=200MB
+      -c effective_cache_size=600MB
+      -c maintenance_work_mem=50MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  admin-api:
+    build:
+      context: ../admin-api
+      dockerfile: Dockerfile
+    container_name: resto-hub-admin-api
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/restohub
+      DB_USER: restohub
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-restohub}
+      SERVER_PORT: 8082
+      ADMIN_WEB_URL: ${ADMIN_WEB_URL:-http://partner.restohub.local}
+      # Переменные для ограничения памяти Java
+      JAVA_OPTS: >-
+        -Xms256m
+        -Xmx512m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -XX:+UseStringDeduplication
+        -XX:+OptimizeStringConcat
+        -Djava.security.egd=file:/dev/./urandom
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8082/admin-api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для admin-api
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+        reservations:
+          memory: 300M
+    restart: unless-stopped
+
+  client-api:
+    build:
+      context: ../client-api
+      dockerfile: Dockerfile
+    container_name: resto-hub-client-api
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/restohub
+      DB_USER: restohub
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-restohub}
+      SERVER_PORT: 8081
+      CLIENT_WEB_URL: ${CLIENT_WEB_URL:-http://restohub.local}
+      # Переменные для ограничения памяти Java
+      JAVA_OPTS: >-
+        -Xms256m
+        -Xmx512m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -XX:+UseStringDeduplication
+        -XX:+OptimizeStringConcat
+        -Djava.security.egd=file:/dev/./urandom
+    ports:
+      - "8081:8081"
+    depends_on:
+      admin-api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для client-api
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+        reservations:
+          memory: 300M
+    restart: unless-stopped
+
+  client-web:
+    build:
+      context: ../client-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
+        VITE_PARTNER_DOMAIN: ${VITE_PARTNER_DOMAIN:-http://partner.restohub.local}
+    container_name: resto-hub-client-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - client-api
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для client-web
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: ../admin-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
+    container_name: resto-hub-admin-web
+    ports:
+      - "3001:80"
+    depends_on:
+      - admin-api
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для admin-web
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ../nginx
+      dockerfile: Dockerfile
+    container_name: resto-hub-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN:-restohub.local}
+      PARTNER_DOMAIN: ${PARTNER_DOMAIN:-partner.restohub.local}
+      API_DOMAIN: ${API_DOMAIN:-api.restohub.local}
+    volumes:
+      - ../nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - client-web
+      - admin-web
+      - client-api
+      - admin-api
+    networks:
+      - resto-hub-network
+    # Ограничения ресурсов для nginx
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  resto-hub-network:
+    driver: bridge
+

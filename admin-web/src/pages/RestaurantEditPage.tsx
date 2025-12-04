@@ -7,6 +7,7 @@ import { apiClient } from '../services/apiClient'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
 import { useToast } from '../context/ToastContext'
+import { getImageUploadErrorMessage } from '../utils/imageUploadError'
 import type { Restaurant } from '../types'
 
 const restaurantSchema = z.object({
@@ -206,7 +207,7 @@ export default function RestaurantEditPage() {
       setIsEditingLogo(false)
       setIsEditingBackground(false)
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка загрузки изображения')
+      toast.error(getImageUploadErrorMessage(error))
     } finally {
       setIsLoading(false)
     }

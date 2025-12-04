@@ -64,6 +64,7 @@ public class RestaurantService {
                 .latitude(restaurant.getLatitude())
                 .longitude(restaurant.getLongitude())
                 .logoId(restaurant.getLogoImage() != null ? restaurant.getLogoImage().getId() : null)
+                .backgroundId(restaurant.getBgImage() != null ? restaurant.getBgImage().getId() : null)
                 .description(restaurant.getDescription())
                 .build();
     }

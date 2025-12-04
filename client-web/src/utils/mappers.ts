@@ -84,7 +84,7 @@ export const mapMenuItem = (api: ApiMenuItem): Dish => {
     name: api.name,
     description: api.description || '',
     price: api.price,
-    imageUrl: getImageUrl(api.imageId),
+    imageUrl: getImageUrl(api.imageId, true), // Используем превью для карточек
     weight: api.weight,
     isNew: api.isNew,
     hasPromo: api.hasPromo,
