@@ -1,6 +1,9 @@
 spring:
   application:
     name: resto-hub-admin-api-test
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
   
   # Включаем Liquibase для тестов, чтобы накатывать миграции
   liquibase:
@@ -22,19 +25,8 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
   
-  # Отключаем mail для тестов
-  mail:
-    host: localhost
-    port: 1025
-    username: test
-    password: test
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
-    from: test@restohub.com
+  # Настройки Resend для тестов (не используется, так как RESEND_API_KEY не установлен)
+  # EmailService будет логировать предупреждение, но не будет падать
   
   # Отключаем scheduling для тестов
   task:
@@ -57,6 +49,10 @@ management:
   health:
     mail:
       enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
+    # Zipkin отключен через spring.autoconfigure.exclude
 
 logging:
   level:
@@ -82,7 +78,9 @@ cors:
 api:
   1c:
     enabled: false  # Отключаем ApiKeyAuthenticationFilter в тестах
-    key: test-api-key
+
+resend:
+  from: no-reply@restohub.kz
 
 company:
   name: Test Company

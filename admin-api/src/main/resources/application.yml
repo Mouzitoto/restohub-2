@@ -1,6 +1,9 @@
 spring:
   application:
     name: resto-hub-admin-api
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
   
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/restohub}
@@ -62,9 +65,7 @@ management:
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: ""  # Отключаем экспорт в Zipkin, используем только локальный трейсинг для MDC
+    # Zipkin отключен через spring.autoconfigure.exclude
 
 logging:
   level:
@@ -108,4 +109,7 @@ company:
 api:
   1c:
     key: ${API_1C_KEY:change-me-in-production}
+
+resend:
+  from: ${RESEND_FROM:no-reply@restohub.kz}
 

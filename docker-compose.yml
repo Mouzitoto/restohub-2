@@ -29,6 +29,8 @@ services:
       DB_PASSWORD: restohub
       SERVER_PORT: 8082
       ADMIN_WEB_URL: ${ADMIN_WEB_URL:-http://partner.restohub.local}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-no-reply@restohub.kz}
     ports:
       - "8082:8082"
     depends_on:

@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: restohub
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-restohub}
       # Оптимизация памяти для PostgreSQL
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=ru_RU.UTF-8"
+      POSTGRES_INITDB_ARGS: "-E UTF8"
     ports:
       - "5432:5432"
     volumes:
@@ -43,9 +43,7 @@ services:
       -c max_wal_size=4GB
 
   admin-api:
-    build:
-      context: ../admin-api
-      dockerfile: Dockerfile
+    image: ${DOCKER_HUB_USERNAME:-your-username}/${DOCKER_HUB_REPO:-resto-hub-repo}:admin-api-${IMAGE_VERSION:-latest}
     container_name: resto-hub-admin-api
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/restohub
@@ -53,6 +51,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-restohub}
       SERVER_PORT: 8082
       ADMIN_WEB_URL: ${ADMIN_WEB_URL:-http://partner.restohub.local}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-no-reply@restohub.kz}
       # Переменные для ограничения памяти Java
       JAVA_OPTS: >-
         -Xms256m
@@ -85,9 +85,7 @@ services:
     restart: unless-stopped
 
   client-api:
-    build:
-      context: ../client-api
-      dockerfile: Dockerfile
+    image: ${DOCKER_HUB_USERNAME:-your-username}/${DOCKER_HUB_REPO:-resto-hub-repo}:client-api-${IMAGE_VERSION:-latest}
     container_name: resto-hub-client-api
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/restohub
@@ -129,12 +127,7 @@ services:
     restart: unless-stopped
 
   client-web:
-    build:
-      context: ../client-web
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
-        VITE_PARTNER_DOMAIN: ${VITE_PARTNER_DOMAIN:-http://partner.restohub.local}
+    image: ${DOCKER_HUB_USERNAME:-your-username}/${DOCKER_HUB_REPO:-resto-hub-repo}:client-web-${IMAGE_VERSION:-latest}
     container_name: resto-hub-client-web
     ports:
       - "3000:80"
@@ -152,11 +145,7 @@ services:
     restart: unless-stopped
 
   admin-web:
-    build:
-      context: ../admin-web
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
+    image: ${DOCKER_HUB_USERNAME:-your-username}/${DOCKER_HUB_REPO:-resto-hub-repo}:admin-web-${IMAGE_VERSION:-latest}
     container_name: resto-hub-admin-web
     ports:
       - "3001:80"
@@ -174,9 +163,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    build:
-      context: ../nginx
-      dockerfile: Dockerfile
+    image: ${DOCKER_HUB_USERNAME:-your-username}/${DOCKER_HUB_REPO:-resto-hub-repo}:nginx-${IMAGE_VERSION:-latest}
     container_name: resto-hub-nginx
     ports:
       - "80:80"
@@ -186,7 +173,7 @@ services:
       PARTNER_DOMAIN: ${PARTNER_DOMAIN:-partner.restohub.local}
       API_DOMAIN: ${API_DOMAIN:-api.restohub.local}
     volumes:
-      - ../nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - client-web
