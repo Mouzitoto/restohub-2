@@ -1,6 +1,9 @@
 spring:
   application:
     name: resto-hub-client-api
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
   
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/restohub}

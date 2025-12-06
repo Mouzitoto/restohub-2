@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -138,13 +138,21 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          <a 
-            href="/forgot-password" 
+        <div style={{ marginTop: '1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <Link 
+            to="/forgot-password" 
             style={{ color: '#007bff', textDecoration: 'none' }}
           >
             Забыли пароль?
-          </a>
+          </Link>
+          <div style={{ marginTop: '0.5rem' }}>
+            <Link 
+              to="/register" 
+              style={{ color: '#007bff', textDecoration: 'none', fontWeight: '500' }}
+            >
+              Зарегистрироваться
+            </Link>
+          </div>
         </div>
       </div>
     </div>

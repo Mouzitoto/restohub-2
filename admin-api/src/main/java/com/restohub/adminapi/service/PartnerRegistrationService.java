@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,20 +25,28 @@ public class PartnerRegistrationService {
     private final RoleRepository roleRepository;
     private final EmailVerificationCodeRepository emailVerificationCodeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
     
-    private static final String VERIFICATION_CODE = "1234"; // Заглушка: всегда используем код 1234
     private static final int CODE_EXPIRATION_MINUTES = 15;
+    private static final SecureRandom random = new SecureRandom();
     
     @Autowired
     public PartnerRegistrationService(
             UserRepository userRepository,
             RoleRepository roleRepository,
             EmailVerificationCodeRepository emailVerificationCodeRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.emailVerificationCodeRepository = emailVerificationCodeRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
+    
+    private String generateVerificationCode() {
+        // Генерируем случайный 4-значный код
+        return String.format("%04d", random.nextInt(10000));
     }
     
     @Transactional
@@ -53,16 +62,21 @@ public class PartnerRegistrationService {
         // Пометить старые коды как использованные
         markOldCodesAsUsed(request.getEmail());
         
+        // Генерируем случайный код подтверждения
+        String verificationCode = generateVerificationCode();
+        
         // Создать новый код подтверждения
         EmailVerificationCode code = new EmailVerificationCode();
         code.setUserEmail(request.getEmail());
-        code.setCode(VERIFICATION_CODE); // Заглушка: всегда 1234
+        code.setCode(verificationCode);
         code.setPasswordHash(passwordEncoder.encode(request.getPassword())); // Сохраняем зашифрованный пароль
         code.setExpiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES));
         code.setUsed(false);
         emailVerificationCodeRepository.save(code);
         
-        // Заглушка: код всегда 1234, не отправляем email
+        // Отправляем код подтверждения на email
+        emailService.sendVerificationCode(request.getEmail(), verificationCode);
+        
         return new RegisterPartnerResponse(
             "Код подтверждения отправлен на ваш email",
             request.getEmail()
@@ -83,8 +97,8 @@ public class PartnerRegistrationService {
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "Код подтверждения не найден или истек"));
         
-        // Проверка кода (заглушка: всегда 1234)
-        if (!VERIFICATION_CODE.equals(request.getCode())) {
+        // Проверка кода
+        if (!code.getCode().equals(request.getCode())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Неверный код подтверждения");
         }
         
@@ -148,16 +162,21 @@ public class PartnerRegistrationService {
         // Пометить старые коды как использованные
         markOldCodesAsUsed(request.getEmail());
         
+        // Генерируем новый случайный код подтверждения
+        String verificationCode = generateVerificationCode();
+        
         // Создать новый код подтверждения
         EmailVerificationCode code = new EmailVerificationCode();
         code.setUserEmail(request.getEmail());
-        code.setCode(VERIFICATION_CODE); // Заглушка: всегда 1234
+        code.setCode(verificationCode);
         code.setPasswordHash(passwordHash); // Используем существующий пароль
         code.setExpiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES));
         code.setUsed(false);
         emailVerificationCodeRepository.save(code);
         
-        // Заглушка: код всегда 1234, не отправляем email
+        // Отправляем код подтверждения на email
+        emailService.sendVerificationCode(request.getEmail(), verificationCode);
+        
         return new MessageResponse("Код подтверждения отправлен на ваш email");
     }
     

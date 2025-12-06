@@ -52,6 +52,40 @@ export const authService = {
     await apiClient.instance.post('/admin-api/auth/reset-password', data)
   },
 
+  async registerPartner(data: {
+    email: string
+    password: string
+    confirmPassword: string
+    agreeToTerms: boolean
+  }): Promise<{ message: string; email: string }> {
+    const response = await apiClient.instance.post<{ message: string; email: string }>(
+      '/admin-api/auth/register',
+      data
+    )
+    return response.data
+  },
+
+  async verifyEmail(data: { email: string; code: string }): Promise<{ message: string; userId: number }> {
+    const response = await apiClient.instance.post<{ message: string; userId: number }>(
+      '/admin-api/auth/verify-email',
+      data
+    )
+    return response.data
+  },
+
+  async resendVerificationCode(data: { email: string }): Promise<{ message: string; email: string }> {
+    const response = await apiClient.instance.post<{ message: string; email: string }>(
+      '/admin-api/auth/resend-verification-code',
+      data
+    )
+    return response.data
+  },
+
+  async getTerms(): Promise<{ terms: string }> {
+    const response = await apiClient.instance.get<{ terms: string }>('/admin-api/auth/terms')
+    return response.data
+  },
+
   logout(): void {
     const refreshToken = tokenStorage.getRefreshToken()
     if (refreshToken) {
