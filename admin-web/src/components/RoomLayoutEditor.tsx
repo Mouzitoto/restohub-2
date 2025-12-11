@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { apiClient } from '../services/apiClient'
 import { useToast } from '../context/ToastContext'
 import type { RoomLayout, Table, UpdateTablePositionRequest } from '../types'
@@ -55,8 +55,10 @@ export default function RoomLayoutEditor({
   })
   const [draggingTable, setDraggingTable] = useState<number | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [dragStartTime, setDragStartTime] = useState<number | null>(null)
-  const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number } | null>(null)
+  const [hasMoved, setHasMoved] = useState(false)
+  const hasMovedRef = useRef(false)
+  const wasDraggingRef = useRef(false) // Флаг для отслеживания, что было перетаскивание
+  const dragEndTimeRef = useRef<number>(0) // Время окончания перетаскивания
   const [resizingTable, setResizingTable] = useState<{ id: number; corner: 'nw' | 'ne' | 'sw' | 'se' } | null>(null)
   
   const imageRef = useRef<HTMLImageElement>(null)
@@ -163,7 +165,25 @@ export default function RoomLayoutEditor({
   }, [imageBlobUrl])
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageRef.current || draggingTable || resizingTable) return
+    // Не открываем dropdown если идет перетаскивание/изменение размера
+    if (!imageRef.current || draggingTable || resizingTable) {
+      return
+    }
+    
+    // Проверяем, не было ли только что перетаскивания (в течение 300ms)
+    const timeSinceDragEnd = Date.now() - dragEndTimeRef.current
+    if (wasDraggingRef.current && timeSinceDragEnd < 300) {
+      // Сбрасываем флаг и игнорируем клик
+      wasDraggingRef.current = false
+      return
+    }
+    
+    // Проверяем, что клик был именно на контейнере, а не на прямоугольнике стола
+    const target = e.target as HTMLElement
+    if (target.closest('[data-table-rectangle]')) {
+      // Клик был на прямоугольнике стола, не открываем dropdown
+      return
+    }
     
     setDropdownPosition({ x: e.clientX, y: e.clientY })
     setShowTableDropdown(true)
@@ -315,163 +335,134 @@ export default function RoomLayoutEditor({
     }
   }
 
-  const handleDragStart = (e: React.MouseEvent, table: Table) => {
-    e.stopPropagation()
-    if (!imageRef.current) return
-    
-    // Запоминаем время и позицию начала перетаскивания
-    setDragStartTime(Date.now())
-    setDragStartPos({ x: e.clientX, y: e.clientY })
-    
-    const rect = imageRef.current.getBoundingClientRect()
-    const x1 = (table.positionX1 || 0) * rect.width / 100
-    const y1 = (table.positionY1 || 0) * rect.height / 100
-    
-    setDragOffset({
-      x: e.clientX - x1,
-      y: e.clientY - y1
-    })
-  }
-
-  const handleDrag = (e: React.MouseEvent) => {
-    if (!imageRef.current || !roomLayout || !dragStartTime || !dragStartPos) return
-    
-    // Проверяем, было ли движение мыши (перетаскивание) или это просто клик
-    const moveDistance = Math.sqrt(
-      Math.pow(e.clientX - dragStartPos.x, 2) + Math.pow(e.clientY - dragStartPos.y, 2)
-    )
-    const timeDiff = Date.now() - dragStartTime
-    
-    // Если движение больше 5px или прошло больше 200ms - начинаем перетаскивание
-    if (moveDistance > 5 || timeDiff > 200) {
-      if (!draggingTable) {
-        // Находим стол по позиции клика
-        const rect = imageRef.current.getBoundingClientRect()
-        const clickX = ((e.clientX - rect.left) / rect.width) * 100
-        const clickY = ((e.clientY - rect.top) / rect.height) * 100
-        
-        const tablesToUse = visualTables.length > 0 ? visualTables : (roomLayout?.tables || [])
-        const clickedTable = tablesToUse.find(table => {
-          if (table.positionX1 == null || table.positionY1 == null || 
-              table.positionX2 == null || table.positionY2 == null) return false
-          const minX = Math.min(table.positionX1, table.positionX2)
-          const maxX = Math.max(table.positionX1, table.positionX2)
-          const minY = Math.min(table.positionY1, table.positionY2)
-          const maxY = Math.max(table.positionY1, table.positionY2)
-          return clickX >= minX && clickX <= maxX && clickY >= minY && clickY <= maxY
-        })
-        
-        if (clickedTable) {
-          setDraggingTable(clickedTable.id)
-        }
-      }
-    }
-    
+  const handleDrag = useCallback((e: MouseEvent) => {
     if (!draggingTable || !imageRef.current) return
     
-    // Используем visualTables для визуального обновления
+    // Отмечаем, что было движение
+    if (!hasMovedRef.current) {
+      hasMovedRef.current = true
+      wasDraggingRef.current = true
+      setHasMoved(true)
+    }
+    
+    const rect = imageRef.current.getBoundingClientRect()
     const tablesToUse = visualTables.length > 0 ? visualTables : (roomLayout?.tables || [])
     const table = tablesToUse.find(t => t.id === draggingTable)
+    
     if (!table || table.positionX1 == null || table.positionY1 == null || 
         table.positionX2 == null || table.positionY2 == null) return
     
-    // Обновляем визуально в реальном времени
-    const rect = imageRef.current.getBoundingClientRect()
-    const x = ((e.clientX - dragOffset.x) / rect.width) * 100
-    const y = ((e.clientY - dragOffset.y) / rect.height) * 100
+    // Вычисляем новую позицию относительно изображения
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
     
-    const width = table.positionX2 - table.positionX1
-    const height = table.positionY2 - table.positionY1
+    // Новая позиция левого верхнего угла с учетом смещения
+    const newX = ((mouseX - dragOffset.x) / rect.width) * 100
+    const newY = ((mouseY - dragOffset.y) / rect.height) * 100
+    
+    // Вычисляем размеры стола
+    const width = Math.abs(table.positionX2 - table.positionX1)
+    const height = Math.abs(table.positionY2 - table.positionY1)
+    
+    // Ограничиваем позицию границами изображения
+    const clampedX = Math.max(0, Math.min(100 - width, newX))
+    const clampedY = Math.max(0, Math.min(100 - height, newY))
     
     // Обновляем визуальное состояние
     setVisualTables(prev => prev.map(t => 
       t.id === draggingTable
         ? { ...t, 
-            positionX1: Math.max(0, Math.min(100, x)),
-            positionY1: Math.max(0, Math.min(100, y)),
-            positionX2: Math.max(0, Math.min(100, x + width)),
-            positionY2: Math.max(0, Math.min(100, y + height))
+            positionX1: clampedX,
+            positionY1: clampedY,
+            positionX2: clampedX + width,
+            positionY2: clampedY + height
           }
         : t
     ))
-  }
+  }, [draggingTable, dragOffset, visualTables, roomLayout])
 
-  const handleDragEnd = async (e: React.MouseEvent) => {
-    const wasDragging = draggingTable !== null
+  const handleDragEnd = useCallback(async () => {
+    const currentDraggingTable = draggingTable
+    const currentHasMoved = hasMoved
     
-    if (!draggingTable || !imageRef.current) {
-      // Если не было перетаскивания, но был клик - открываем панель редактирования
-      if (!wasDragging && dragStartTime && dragStartPos && roomLayout) {
-        const moveDistance = Math.sqrt(
-          Math.pow(e.clientX - dragStartPos.x, 2) + Math.pow(e.clientY - dragStartPos.y, 2)
-        )
-        if (moveDistance <= 5 && imageRef.current) {
-          // Находим стол по позиции клика (используем visualTables)
-          const rect = imageRef.current.getBoundingClientRect()
-          const clickX = ((dragStartPos.x - rect.left) / rect.width) * 100
-          const clickY = ((dragStartPos.y - rect.top) / rect.height) * 100
-          
-          const tablesToUse = visualTables.length > 0 ? visualTables : roomLayout.tables
-          const clickedTable = tablesToUse.find(table => {
-            if (table.positionX1 == null || table.positionY1 == null || 
-                table.positionX2 == null || table.positionY2 == null) return false
-            const minX = Math.min(table.positionX1, table.positionX2)
-            const maxX = Math.max(table.positionX1, table.positionX2)
-            const minY = Math.min(table.positionY1, table.positionY2)
-            const maxY = Math.max(table.positionY1, table.positionY2)
-            return clickX >= minX && clickX <= maxX && clickY >= minY && clickY <= maxY
-          })
-          
-          if (clickedTable) {
-            setSelectedTable(clickedTable)
-            setIsEditingTable(true)
-          }
-        }
-      }
+    if (!currentDraggingTable || !imageRef.current) {
       setDraggingTable(null)
-      setDragStartTime(null)
-      setDragStartPos(null)
+      setHasMoved(false)
+      hasMovedRef.current = false
       return
     }
-    
-    if (!imageRef.current) {
-      setDraggingTable(null)
-      setDragStartTime(null)
-      setDragStartPos(null)
-      return
-    }
-    
-    const rect = imageRef.current.getBoundingClientRect()
-    const x = ((e.clientX - dragOffset.x) / rect.width) * 100
-    const y = ((e.clientY - dragOffset.y) / rect.height) * 100
-    
-    // Используем visualTables для получения актуальных размеров
-    const tablesToUse = visualTables.length > 0 ? visualTables : (roomLayout?.tables || [])
-    const table = tablesToUse.find(t => t.id === draggingTable)
-    if (!table || table.positionX1 == null || table.positionY1 == null || 
-        table.positionX2 == null || table.positionY2 == null) {
-      setDraggingTable(null)
-      setDragStartTime(null)
-      setDragStartPos(null)
-      return
-    }
-    
-    const width = table.positionX2 - table.positionX1
-    const height = table.positionY2 - table.positionY1
-    
-    // Сохраняем на сервер
-    await updateTablePosition(
-      table.id,
-      Math.max(0, Math.min(100, x)),
-      Math.max(0, Math.min(100, y)),
-      Math.max(0, Math.min(100, x + width)),
-      Math.max(0, Math.min(100, y + height))
-    )
     
     setDraggingTable(null)
-    setDragStartTime(null)
-    setDragStartPos(null)
+    setHasMoved(false)
+    hasMovedRef.current = false
+    
+    // Если было движение - сохраняем позицию, иначе это был клик
+    if (currentHasMoved) {
+      const tablesToUse = visualTables.length > 0 ? visualTables : (roomLayout?.tables || [])
+      const table = tablesToUse.find(t => t.id === currentDraggingTable)
+      
+      if (table && table.positionX1 != null && table.positionY1 != null && 
+          table.positionX2 != null && table.positionY2 != null) {
+        // Сохраняем на сервер
+        await updateTablePosition(
+          table.id,
+          table.positionX1,
+          table.positionY1,
+          table.positionX2,
+          table.positionY2
+        )
+      }
+      
+      // Запоминаем время окончания перетаскивания
+      dragEndTimeRef.current = Date.now()
+      // Флаг останется true, чтобы предотвратить открытие dropdown при следующем onClick
+    } else {
+      // Если не было движения, сразу сбрасываем флаг
+      wasDraggingRef.current = false
+      dragEndTimeRef.current = 0
+    }
+  }, [draggingTable, hasMoved, visualTables, roomLayout])
+
+  const handleDragStart = (e: React.MouseEvent, table: Table) => {
+    e.stopPropagation()
+    if (!imageRef.current || table.positionX1 == null || table.positionY1 == null || 
+        table.positionX2 == null || table.positionY2 == null) return
+    
+    // Начинаем перетаскивание сразу
+    setDraggingTable(table.id)
+    setHasMoved(false)
+    hasMovedRef.current = false
+    wasDraggingRef.current = false
+    
+    const rect = imageRef.current.getBoundingClientRect()
+    const minX = Math.min(table.positionX1, table.positionX2)
+    const minY = Math.min(table.positionY1, table.positionY2)
+    
+    // Вычисляем смещение от точки клика до левого верхнего угла прямоугольника
+    const tableLeftPx = (minX / 100) * rect.width
+    const tableTopPx = (minY / 100) * rect.height
+    
+    setDragOffset({
+      x: e.clientX - rect.left - tableLeftPx,
+      y: e.clientY - rect.top - tableTopPx
+    })
+    
+    // Предотвращаем выделение текста при перетаскивании
+    e.preventDefault()
   }
+
+  // Обработчики для drag and drop на уровне документа
+  useEffect(() => {
+    if (draggingTable) {
+      document.addEventListener('mousemove', handleDrag)
+      document.addEventListener('mouseup', handleDragEnd)
+      
+      return () => {
+        document.removeEventListener('mousemove', handleDrag)
+        document.removeEventListener('mouseup', handleDragEnd)
+      }
+    }
+  }, [draggingTable, handleDrag, handleDragEnd])
 
   const handleResizeStart = (e: React.MouseEvent, table: Table, corner: 'nw' | 'ne' | 'sw' | 'se') => {
     e.stopPropagation()
@@ -576,12 +567,6 @@ export default function RoomLayoutEditor({
           ref={containerRef}
           style={{ position: 'relative', display: 'inline-block', width: '100%' }}
           onClick={handleImageClick}
-          onMouseMove={draggingTable ? handleDrag : resizingTable ? handleResize : undefined}
-          onMouseUp={draggingTable ? handleDragEnd : resizingTable ? handleResizeEnd : undefined}
-          onMouseLeave={() => {
-            setDraggingTable(null)
-            setResizingTable(null)
-          }}
         >
           {imageError ? (
             <div style={{ 
@@ -632,6 +617,7 @@ export default function RoomLayoutEditor({
             return (
               <div
                 key={rect.table.id}
+                data-table-rectangle
                 style={{
                   position: 'absolute',
                   left: `${minX}%`,
@@ -650,13 +636,21 @@ export default function RoomLayoutEditor({
                   textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
                   pointerEvents: 'auto',
                 }}
+                onMouseDown={(e) => {
+                  // Предотвращаем открытие панели редактирования при начале перетаскивания
+                  e.stopPropagation()
+                  handleDragStart(e, rect.table)
+                }}
                 onClick={(e) => {
-                  // Если не было перетаскивания, открываем панель редактирования
-                  if (!draggingTable && !resizingTable) {
+                  // Открываем панель редактирования только если не было перетаскивания
+                  if (!wasDraggingRef.current && !draggingTable && !resizingTable) {
+                    e.stopPropagation()
                     handleTableClick(e, rect.table)
+                  } else {
+                    // Если было перетаскивание, сбрасываем флаг
+                    wasDraggingRef.current = false
                   }
                 }}
-                onMouseDown={(e) => handleDragStart(e, rect.table)}
                 title={`Стол ${rect.table.tableNumber} (${rect.table.capacity} мест)`}
               >
                 {rect.table.tableNumber}
