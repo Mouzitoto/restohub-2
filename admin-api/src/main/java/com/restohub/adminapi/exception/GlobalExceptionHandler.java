@@ -104,7 +104,18 @@ public class GlobalExceptionHandler {
             status = HttpStatus.NOT_FOUND;
         }
         
-        logger.error("Exception: {}", exceptionName, e);
+        // Логируем ошибки аутентификации на уровне WARN без полного стектрейса,
+        // так как это ожидаемые бизнес-ситуации, а не системные ошибки
+        if ("INVALID_CREDENTIALS".equals(exceptionName) || 
+            "INVALID_TOKEN".equals(exceptionName) ||
+            "INVALID_REFRESH_TOKEN".equals(exceptionName) ||
+            "TOKEN_EXPIRED".equals(exceptionName) ||
+            "REFRESH_TOKEN_EXPIRED".equals(exceptionName) ||
+            "UNAUTHORIZED".equals(exceptionName)) {
+            logger.warn("Authentication error: {}", exceptionName);
+        } else {
+            logger.error("Exception: {}", exceptionName, e);
+        }
         
         ErrorResponse errorResponse = new ErrorResponse(
                 exceptionName,

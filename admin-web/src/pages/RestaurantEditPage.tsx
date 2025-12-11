@@ -1,20 +1,62 @@
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useState, useRef } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { QRCodeSVG } from 'qrcode.react'
 import { useApp } from '../context/AppContext'
 import { apiClient } from '../services/apiClient'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
 import { useToast } from '../context/ToastContext'
 import { getImageUploadErrorMessage } from '../utils/imageUploadError'
+import InputMask from 'react-input-mask'
 import type { Restaurant } from '../types'
+
+// Функция для преобразования телефона из маски в формат +7XXXXXXXXXX или 8XXXXXXXXXX
+const normalizePhone = (value: string): string => {
+  if (!value) return ''
+  // Убираем все символы кроме цифр
+  const digits = value.replace(/\D/g, '')
+  // Если начинается с 7, добавляем +
+  if (digits.startsWith('7') && digits.length === 11) {
+    return `+${digits}`
+  }
+  // Если начинается с 8 и 11 цифр, оставляем как есть
+  if (digits.startsWith('8') && digits.length === 11) {
+    return digits
+  }
+  return value
+}
+
+// Функция для форматирования телефона в формат маски +7 (999) 123-45-67
+const formatPhoneForMask = (value: string): string => {
+  if (!value) return ''
+  // Убираем все символы кроме цифр
+  const digits = value.replace(/\D/g, '')
+  // Если 11 цифр, форматируем
+  if (digits.length === 11) {
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`
+  }
+  return value
+}
 
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Название ресторана обязательно').max(255),
   address: z.string().max(500).optional(),
-  phone: z.string().regex(/^(\+7|8)\d{10}$/, 'Введите корректный номер телефона').optional(),
-  whatsapp: z.string().regex(/^(\+7|8)\d{10}$/, 'Введите корректный номер телефона').optional(),
+  phone: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val || val === '') return true
+      const normalized = normalizePhone(val)
+      return /^(\+7|8)\d{10}$/.test(normalized)
+    }, { message: 'Введите корректный номер телефона (формат: +7 (999) 123-45-67)' }),
+  whatsapp: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val || val === '') return true
+      const normalized = normalizePhone(val)
+      return /^(\+7|8)\d{10}$/.test(normalized)
+    }, { message: 'Введите корректный номер телефона (формат: +7 (999) 123-45-67)' }),
   instagram: z.string().regex(/^https?:\/\/(www\.)?instagram\.com\/[\w.]+$/, 'Введите корректную ссылку на Instagram').optional(),
   description: z.string().max(10000).optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -36,12 +78,14 @@ export default function RestaurantEditPage() {
   const [isEditingBackground, setIsEditingBackground] = useState(false)
   const [restaurantData, setRestaurantData] = useState<RestaurantFormData | null>(null)
   const toast = useToast()
+  const qrCodeRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    control,
   } = useForm<RestaurantFormData>({
     resolver: zodResolver(restaurantSchema),
     defaultValues: {
@@ -82,8 +126,8 @@ export default function RestaurantEditPage() {
       setRestaurantData(formData)
       setValue('name', formData.name)
       setValue('address', formData.address)
-      setValue('phone', formData.phone)
-      setValue('whatsapp', formData.whatsapp)
+      setValue('phone', formData.phone ? formatPhoneForMask(formData.phone) : '')
+      setValue('whatsapp', formData.whatsapp ? formatPhoneForMask(formData.whatsapp) : '')
       setValue('instagram', formData.instagram)
       setValue('description', formData.description)
       setValue('latitude', formData.latitude)
@@ -104,8 +148,15 @@ export default function RestaurantEditPage() {
 
     setIsLoading(true)
     try {
+      // Нормализуем телефоны перед отправкой
+      const normalizedData = {
+        ...data,
+        phone: data.phone ? normalizePhone(data.phone) : '',
+        whatsapp: data.whatsapp ? normalizePhone(data.whatsapp) : '',
+      }
+      
       // Теперь logoImageId и bgImageId не нужно отправлять, так как они загружаются отдельно
-      await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}`, data)
+      await apiClient.instance.put(`/admin-api/r/${currentRestaurant.id}`, normalizedData)
       toast.success('Настройки сохранены')
       
       // Перезагружаем данные ресторана после сохранения
@@ -234,6 +285,93 @@ export default function RestaurantEditPage() {
     }
   }
 
+  // Получаем базовый URL для client-web
+  const getClientWebBaseUrl = (): string => {
+    // Используем переменную окружения или дефолтное значение
+    const envUrl = import.meta.env.VITE_CLIENT_WEB_URL
+    if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+      return envUrl.trim()
+    }
+    // Дефолтное значение для разработки
+    return 'http://restohub.local'
+  }
+
+  // Генерируем URL ресторана
+  const getRestaurantUrl = (): string => {
+    if (!currentRestaurant) return ''
+    const baseUrl = getClientWebBaseUrl()
+    return `${baseUrl}/r/${currentRestaurant.id}`
+  }
+
+  // Генерируем URL для бронирования
+  const getBookingUrl = (): string => {
+    if (!currentRestaurant) return ''
+    const baseUrl = getClientWebBaseUrl()
+    return `${baseUrl}/r/${currentRestaurant.id}/booking/rooms`
+  }
+
+  // Копирование URL в буфер обмена
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`${label} скопирован в буфер обмена`)
+    } catch (error) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        toast.success(`${label} скопирован в буфер обмена`)
+      } catch (err) {
+        toast.error('Не удалось скопировать в буфер обмена')
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
+  // Скачивание QR кода
+  const downloadQRCode = () => {
+    if (!qrCodeRef.current) return
+
+    const svg = qrCodeRef.current.querySelector('svg')
+    if (!svg) return
+
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      if (ctx) {
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img, 0, 0)
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `restaurant-${currentRestaurant?.id}-qr-code.png`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+            toast.success('QR код скачан')
+          }
+        }, 'image/png')
+      }
+    }
+
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+  }
+
   if (!currentRestaurant) {
     return <div>Ресторан не выбран</div>
   }
@@ -280,13 +418,46 @@ export default function RestaurantEditPage() {
 
             <div style={{ marginBottom: '1rem' }}>
               <label>Телефон</label>
-              <input {...register('phone')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="+7 (999) 999-99-99"
+                    maskChar={null}
+                    value={field.value || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      field.onChange(value)
+                    }}
+                    placeholder="+7 (999) 123-45-67"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                  />
+                )}
+              />
               {errors.phone && <div style={{ color: 'red' }}>{errors.phone.message}</div>}
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
               <label>WhatsApp</label>
-              <input {...register('whatsapp')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              <Controller
+                name="whatsapp"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="+7 (999) 999-99-99"
+                    maskChar={null}
+                    value={field.value || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      field.onChange(value)
+                    }}
+                    placeholder="+7 (999) 123-45-67"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                  />
+                )}
+              />
+              {errors.whatsapp && <div style={{ color: 'red' }}>{errors.whatsapp.message}</div>}
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
@@ -415,6 +586,153 @@ export default function RestaurantEditPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Ссылки и QR код */}
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', marginBottom: '2rem' }}>
+        <h2 style={{ marginBottom: '1.5rem' }}>Ссылки и QR код</h2>
+        
+        {/* QR код ресторана */}
+        <div style={{ marginBottom: '2rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            QR код ресторана
+          </label>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1rem',
+            padding: '1rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #dee2e6'
+          }}>
+            <div ref={qrCodeRef} style={{ 
+              padding: '1rem', 
+              backgroundColor: 'white', 
+              borderRadius: '4px',
+              display: 'inline-block'
+            }}>
+              <QRCodeSVG 
+                value={getRestaurantUrl()} 
+                size={150}
+                level="H"
+                includeMargin={true}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={downloadQRCode}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+              }}
+            >
+              Скачать
+            </button>
+          </div>
+        </div>
+
+        {/* URL для бронирования */}
+        <div style={{ marginBottom: '2rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            URL для бронирования
+          </label>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            padding: '0.75rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #dee2e6'
+          }}>
+            <input
+              type="text"
+              value={getBookingUrl()}
+              readOnly
+              style={{
+                flex: 1,
+                padding: '0.5rem',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                backgroundColor: 'white',
+                fontSize: '0.875rem',
+                fontFamily: 'monospace',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => copyToClipboard(getBookingUrl(), 'URL для бронирования')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Копировать
+            </button>
+          </div>
+        </div>
+
+        {/* URL ресторана */}
+        <div style={{ marginBottom: '2rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            URL ресторана
+          </label>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            padding: '0.75rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #dee2e6'
+          }}>
+            <input
+              type="text"
+              value={getRestaurantUrl()}
+              readOnly
+              style={{
+                flex: 1,
+                padding: '0.5rem',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                backgroundColor: 'white',
+                fontSize: '0.875rem',
+                fontFamily: 'monospace',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => copyToClipboard(getRestaurantUrl(), 'URL ресторана')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Копировать
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Логотип */}

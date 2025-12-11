@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { apiClient } from '../services/apiClient'
 import Modal from '../components/common/Modal'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
 import RoomLayoutEditor from '../components/RoomLayoutEditor'
+import SortableTableHeader, { type SortDirection } from '../components/common/SortableTableHeader'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -34,6 +35,8 @@ export default function TablesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false)
   const [layoutEditorRoomId, setLayoutEditorRoomId] = useState<number | null>(null)
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const toast = useToast()
 
   const {
@@ -195,6 +198,51 @@ export default function TablesPage() {
     }
   }
 
+  const handleSort = (key: string, direction: SortDirection) => {
+    setSortKey(direction ? key : null)
+    setSortDirection(direction)
+  }
+
+  const sortedTables = useMemo(() => {
+    if (!sortKey || !sortDirection) {
+      return tables
+    }
+
+    const sorted = [...tables].sort((a, b) => {
+      let aValue: string | number
+      let bValue: string | number
+
+      if (sortKey === 'tableNumber') {
+        aValue = a.tableNumber
+        bValue = b.tableNumber
+        // Сортируем как строки, но учитываем числовые значения
+        const aNum = parseInt(a.tableNumber, 10)
+        const bNum = parseInt(b.tableNumber, 10)
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          aValue = aNum
+          bValue = bNum
+        }
+      } else if (sortKey === 'room') {
+        const aRoom = rooms.find((r) => r.id === a.roomId)?.name || ''
+        const bRoom = rooms.find((r) => r.id === b.roomId)?.name || ''
+        aValue = aRoom
+        bValue = bRoom
+      } else {
+        return 0
+      }
+
+      if (aValue < bValue) {
+        return sortDirection === 'asc' ? -1 : 1
+      }
+      if (aValue > bValue) {
+        return sortDirection === 'asc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return sorted
+  }, [tables, rooms, sortKey, sortDirection])
+
   if (!currentRestaurant) {
     return <div>Ресторан не выбран</div>
   }
@@ -229,8 +277,24 @@ export default function TablesPage() {
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Фото</th>
-              <th style={{ padding: '1rem', textAlign: 'left' }}>Номер стола</th>
-              <th style={{ padding: '1rem', textAlign: 'left' }}>Зал</th>
+              <SortableTableHeader
+                sortKey="tableNumber"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={handleSort}
+                style={{ padding: '1rem', textAlign: 'left' }}
+              >
+                Номер стола
+              </SortableTableHeader>
+              <SortableTableHeader
+                sortKey="room"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={handleSort}
+                style={{ padding: '1rem', textAlign: 'left' }}
+              >
+                Зал
+              </SortableTableHeader>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Количество мест</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Депозит</th>
@@ -239,7 +303,7 @@ export default function TablesPage() {
             </tr>
           </thead>
           <tbody>
-            {tables.map((table) => (
+            {sortedTables.map((table) => (
               <tr key={table.id} style={{ borderTop: '1px solid #eee' }}>
                 <td style={{ padding: '1rem' }}>
                   <ImagePreview imageId={table.imageId ?? null} size="small" />

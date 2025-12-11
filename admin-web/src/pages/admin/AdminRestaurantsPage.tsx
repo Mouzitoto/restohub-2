@@ -3,17 +3,58 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { apiClient } from '../../services/apiClient'
 import Modal from '../../components/common/Modal'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../../context/ToastContext'
+import InputMask from 'react-input-mask'
 import type { Restaurant, PaginationResponse, UserInfo } from '../../types'
+
+// Функция для преобразования телефона из маски в формат +7XXXXXXXXXX или 8XXXXXXXXXX
+const normalizePhone = (value: string): string => {
+  if (!value) return ''
+  // Убираем все символы кроме цифр
+  const digits = value.replace(/\D/g, '')
+  // Если начинается с 7, добавляем +
+  if (digits.startsWith('7') && digits.length === 11) {
+    return `+${digits}`
+  }
+  // Если начинается с 8 и 11 цифр, оставляем как есть
+  if (digits.startsWith('8') && digits.length === 11) {
+    return digits
+  }
+  return value
+}
+
+// Функция для форматирования телефона в формат маски +7 (999) 123-45-67
+const formatPhoneForMask = (value: string): string => {
+  if (!value) return ''
+  // Убираем все символы кроме цифр
+  const digits = value.replace(/\D/g, '')
+  // Если 11 цифр, форматируем
+  if (digits.length === 11) {
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`
+  }
+  return value
+}
 
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Название обязательно').max(255),
   address: z.string().min(1, 'Адрес обязателен').max(500),
-  phone: z.string().min(1, 'Телефон обязателен').max(50),
-  whatsapp: z.string().max(50).optional().or(z.literal('')),
+  phone: z.string()
+    .min(1, 'Телефон обязателен')
+    .refine((val) => {
+      const normalized = normalizePhone(val)
+      return /^(\+7|8)\d{10}$/.test(normalized)
+    }, { message: 'Введите корректный номер телефона (формат: +7 (999) 123-45-67)' }),
+  whatsapp: z.string()
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => {
+      if (!val || val === '') return true
+      const normalized = normalizePhone(val)
+      return /^(\+7|8)\d{10}$/.test(normalized)
+    }, { message: 'Введите корректный номер телефона (формат: +7 (999) 123-45-67)' }),
   instagram: z.string().max(255).optional().or(z.literal('')),
   description: z.string().max(10000).optional().or(z.literal('')),
   latitude: z.number().min(-90).max(90).optional(),
@@ -41,6 +82,7 @@ export default function AdminRestaurantsPage() {
     handleSubmit,
     formState: { errors },
     reset,
+    control,
   } = useForm<RestaurantFormData>({
     resolver: zodResolver(restaurantSchema),
   })
@@ -53,6 +95,34 @@ export default function AdminRestaurantsPage() {
     }
     loadRestaurants()
   }, [role, navigate])
+
+  useEffect(() => {
+    if (isModalOpen && editingRestaurant) {
+      // Загружаем данные ресторана для редактирования
+      apiClient.instance.get<Restaurant>(`/admin-api/r/${editingRestaurant.id}`)
+        .then((response) => {
+          const data = response.data
+          reset({
+            name: data.name,
+            address: data.address || '',
+            phone: data.phone ? formatPhoneForMask(data.phone) : '',
+            whatsapp: data.whatsapp ? formatPhoneForMask(data.whatsapp) : '',
+            instagram: data.instagram || '',
+            description: data.description || '',
+            latitude: data.latitude || undefined,
+            longitude: data.longitude || undefined,
+            workingHours: data.workingHours || '',
+            managerLanguageCode: data.managerLanguageCode || '',
+          })
+        })
+        .catch(() => {
+          toast.error('Не удалось загрузить данные ресторана')
+        })
+    } else if (isModalOpen && !editingRestaurant) {
+      // Сброс формы при создании нового ресторана
+      reset()
+    }
+  }, [isModalOpen, editingRestaurant, reset, toast])
 
   const loadRestaurants = async () => {
     try {
@@ -68,11 +138,18 @@ export default function AdminRestaurantsPage() {
   const onSubmit = async (data: RestaurantFormData) => {
     setIsLoading(true)
     try {
+      // Нормализуем телефоны перед отправкой
+      const normalizedData = {
+        ...data,
+        phone: normalizePhone(data.phone),
+        whatsapp: data.whatsapp ? normalizePhone(data.whatsapp) : '',
+      }
+      
       if (editingRestaurant) {
-        await apiClient.instance.put(`/admin-api/r/${editingRestaurant.id}`, data)
+        await apiClient.instance.put(`/admin-api/r/${editingRestaurant.id}`, normalizedData)
         toast.success('Ресторан обновлен')
       } else {
-        const response = await apiClient.instance.post<Restaurant>('/admin-api/r', data)
+        const response = await apiClient.instance.post<Restaurant>('/admin-api/r', normalizedData)
         toast.success('Ресторан создан')
         
         // Если это менеджер и создан новый ресторан, обновляем список ресторанов и выбираем новый
@@ -217,13 +294,45 @@ export default function AdminRestaurantsPage() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>Телефон *</label>
-            <input {...register('phone')} placeholder="+79991234567" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="+7 (999) 999-99-99"
+                    maskChar={null}
+                    value={field.value || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      field.onChange(value)
+                    }}
+                    placeholder="+7 (999) 123-45-67"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                  />
+                )}
+              />
             {errors.phone && <div style={{ color: 'red' }}>{errors.phone.message}</div>}
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
             <label>WhatsApp</label>
-            <input {...register('whatsapp')} placeholder="+79991234567" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              <Controller
+                name="whatsapp"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="+7 (999) 999-99-99"
+                    maskChar={null}
+                    value={field.value || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      field.onChange(value)
+                    }}
+                    placeholder="+7 (999) 123-45-67"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                  />
+                )}
+              />
             {errors.whatsapp && <div style={{ color: 'red' }}>{errors.whatsapp.message}</div>}
           </div>
 

@@ -469,21 +469,6 @@ export default function RoomLayoutEditor({
     setResizingTable({ id: table.id, corner })
   }
 
-  const handleResize = (_e: React.MouseEvent) => {
-    if (!resizingTable || !imageRef.current || !roomLayout) return
-    // Логика изменения размера
-  }
-
-  const handleResizeEnd = async (_e: React.MouseEvent) => {
-    if (!resizingTable || !imageRef.current || !roomLayout) {
-      setResizingTable(null)
-      return
-    }
-    
-    // Сохраняем новый размер
-    setResizingTable(null)
-  }
-
   const getTableRectangles = (): TableRectangle[] => {
     // Используем visualTables для визуализации (включая несохраненные изменения)
     const tablesToUse = visualTables.length > 0 ? visualTables : (roomLayout?.tables || [])
