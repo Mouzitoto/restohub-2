@@ -5,6 +5,7 @@ import { ArrowLeft, MapPin, Phone, Mail, Calendar, MessageCircle, Instagram, Glo
 import { PromotionCard } from '../components/PromotionCard';
 import { Badge } from '../components/ui/badge';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { ImageModal } from '../components/ImageModal';
 import { RestoHubLogo } from '../components/RestoHubLogo';
 import { restaurantApi } from '../services/api';
 import { mapRestaurant, mapPromotion } from '../utils/mappers';
@@ -20,6 +21,7 @@ export function RestaurantPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -111,11 +113,16 @@ export function RestaurantPage() {
       {/* Header with background image */}
       <div className="relative h-64 bg-gray-900">
         {restaurant.backgroundUrl ? (
-          <ImageWithFallback
-            src={restaurant.backgroundUrl}
-            alt={restaurant.name}
-            className="w-full h-full object-cover opacity-70"
-          />
+          <div 
+            className="w-full h-full cursor-pointer"
+            onClick={() => setShowImageModal(true)}
+          >
+            <ImageWithFallback
+              src={restaurant.backgroundUrl}
+              alt={restaurant.name}
+              className="w-full h-full object-cover opacity-70"
+            />
+          </div>
         ) : (
           <div className="w-full h-full bg-gray-800" />
         )}
@@ -349,6 +356,15 @@ export function RestaurantPage() {
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && restaurant.backgroundUrl && (
+        <ImageModal
+          imageUrl={restaurant.backgroundUrl}
+          alt={restaurant.name}
+          onClose={() => setShowImageModal(false)}
+        />
+      )}
     </div>
   );
 }
