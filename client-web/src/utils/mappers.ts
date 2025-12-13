@@ -128,6 +128,7 @@ export const mapRoom = (api: ApiRoom): Room => {
     floorId: api.floorId.toString(),
     isSmoking: api.isSmoking,
     isOutdoor: api.isOutdoor,
+    isLiveMusic: api.isLiveMusic ?? false,
     imageId: api.imageId,
     mapImageUrl: getImageUrl(api.imageId),
     description: api.description,
@@ -136,8 +137,6 @@ export const mapRoom = (api: ApiRoom): Room => {
 
 // Convert API Table to Component Table
 export const mapTable = (api: ApiTable): Table => {
-  // Note: x, y coordinates are not stored in DB
-  // They will need to be calculated or simplified visualization used
   return {
     id: api.id.toString(),
     tableNumber: api.tableNumber,
@@ -147,7 +146,10 @@ export const mapTable = (api: ApiTable): Table => {
     imageUrl: getImageUrl(api.imageId),
     images: api.imageId ? [getImageUrl(api.imageId)!] : undefined,
     deposit: api.depositAmount,
-    // x, y coordinates not available - will be handled in TableSelectionPage
+    positionX1: api.positionX1 != null ? Number(api.positionX1) : null,
+    positionY1: api.positionY1 != null ? Number(api.positionY1) : null,
+    positionX2: api.positionX2 != null ? Number(api.positionX2) : null,
+    positionY2: api.positionY2 != null ? Number(api.positionY2) : null,
   };
 };
 

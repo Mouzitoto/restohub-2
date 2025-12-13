@@ -85,6 +85,7 @@ public class RoomService {
         room.setDescription(request.getDescription());
         room.setIsSmoking(request.getIsSmoking() != null ? request.getIsSmoking() : false);
         room.setIsOutdoor(request.getIsOutdoor() != null ? request.getIsOutdoor() : false);
+        room.setIsLiveMusic(request.getIsLiveMusic() != null ? request.getIsLiveMusic() : false);
         room.setImage(image);
         room.setIsActive(true);
         
@@ -168,6 +169,9 @@ public class RoomService {
         if (request.getIsOutdoor() != null) {
             room.setIsOutdoor(request.getIsOutdoor());
         }
+        if (request.getIsLiveMusic() != null) {
+            room.setIsLiveMusic(request.getIsLiveMusic());
+        }
         if (request.getImageId() != null) {
             Image oldImage = room.getImage();
             if (request.getImageId() == 0) {
@@ -234,6 +238,7 @@ public class RoomService {
         response.setDescription(room.getDescription());
         response.setIsSmoking(room.getIsSmoking());
         response.setIsOutdoor(room.getIsOutdoor());
+        response.setIsLiveMusic(room.getIsLiveMusic());
         response.setImageId(room.getImage() != null ? room.getImage().getId() : null);
         response.setIsActive(room.getIsActive());
         response.setCreatedAt(room.getCreatedAt() != null ? room.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null);

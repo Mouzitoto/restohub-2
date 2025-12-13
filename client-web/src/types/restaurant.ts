@@ -71,6 +71,7 @@ export interface ApiRoom {
   floorId: number;
   isSmoking: boolean;
   isOutdoor: boolean;
+  isLiveMusic?: boolean;
   imageId?: number;
   description?: string;
 }
@@ -84,6 +85,10 @@ export interface ApiTable {
   imageId?: number;
   depositAmount?: number;
   depositNote?: string;
+  positionX1?: number | null;
+  positionY1?: number | null;
+  positionX2?: number | null;
+  positionY2?: number | null;
 }
 
 // Component Types (adapted from design-from-figma)
@@ -155,6 +160,7 @@ export interface Room {
   floorId: string;
   isSmoking: boolean;
   isOutdoor: boolean;
+  isLiveMusic: boolean;
   imageId?: number;
   mapImageUrl?: string;
   description?: string;
@@ -169,9 +175,11 @@ export interface Table {
   imageUrl?: string;
   images?: string[];
   deposit?: number;
-  // Coordinates not stored in DB - will be calculated or simplified
-  x?: number;
-  y?: number;
+  // Coordinates on hall plan (in percentages 0-100)
+  positionX1?: number | null;
+  positionY1?: number | null;
+  positionX2?: number | null;
+  positionY2?: number | null;
 }
 
 export interface BookingRequest {

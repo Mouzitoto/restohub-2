@@ -88,6 +88,7 @@ public class RestaurantController {
                         .floorId(room.getFloor().getId())
                         .isSmoking(room.getIsSmoking())
                         .isOutdoor(room.getIsOutdoor())
+                        .isLiveMusic(room.getIsLiveMusic())
                         .build())
                 .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(response);
@@ -106,6 +107,7 @@ public class RestaurantController {
                 .floorId(room.getFloor().getId())
                 .isSmoking(room.getIsSmoking())
                 .isOutdoor(room.getIsOutdoor())
+                .isLiveMusic(room.getIsLiveMusic())
                 .imageId(room.getImage() != null ? room.getImage().getId() : null)
                 .build();
         return ResponseEntity.ok(response);

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, Cigarette, CigaretteOff, Sun } from 'lucide-react';
+import { ArrowLeft, Cigarette, CigaretteOff, Sun, Music } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { restaurantApi } from '../services/api';
 import { mapFloor, mapRoom, mapRestaurant } from '../utils/mappers';
@@ -14,7 +14,6 @@ export function RoomSelectionPage() {
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [floors, setFloors] = useState<Floor[]>([]);
-  const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +23,6 @@ export function RoomSelectionPage() {
       loadData();
     }
   }, [id]);
-
-  useEffect(() => {
-    if (selectedFloorId && id) {
-      loadRooms();
-    }
-  }, [selectedFloorId, id]);
 
   const loadData = async () => {
     if (!id) return;
@@ -54,10 +47,8 @@ export function RoomSelectionPage() {
       const mappedFloors = apiFloors.map(mapFloor);
       setFloors(mappedFloors);
       
-      // Set first floor as selected
-      if (mappedFloors.length > 0) {
-        setSelectedFloorId(mappedFloors[0].id);
-      }
+      // Load all rooms (without floor filter)
+      await loadRooms(restaurantId);
     } catch (err: any) {
       console.error('Error loading data:', err);
       setError('Ошибка при загрузке данных');
@@ -67,14 +58,13 @@ export function RoomSelectionPage() {
     }
   };
 
-  const loadRooms = async () => {
-    if (!id || !selectedFloorId) return;
+  const loadRooms = async (restaurantId?: number) => {
+    const targetRestaurantId = restaurantId || (id ? parseInt(id, 10) : null);
+    if (!targetRestaurantId) return;
     
     try {
-      const restaurantId = parseInt(id, 10);
-      const floorId = parseInt(selectedFloorId, 10);
-      
-      const apiRooms = await restaurantApi.getRooms(restaurantId, { floorId });
+      // Load all rooms without floor filter
+      const apiRooms = await restaurantApi.getRooms(targetRestaurantId);
       const mappedRooms = apiRooms.map(mapRoom);
       setRooms(mappedRooms);
     } catch (err: any) {
@@ -83,6 +73,22 @@ export function RoomSelectionPage() {
       setRooms([]);
     }
   };
+
+  // Sort rooms by floor number (ascending)
+  const sortedRooms = useMemo(() => {
+    return [...rooms].sort((a, b) => {
+      const floorA = floors.find(f => f.id === a.floorId);
+      const floorB = floors.find(f => f.id === b.floorId);
+      
+      // If floor not found, put at the end
+      if (!floorA && !floorB) return 0;
+      if (!floorA) return 1;
+      if (!floorB) return -1;
+      
+      // Compare by floor number
+      return floorA.number - floorB.number;
+    });
+  }, [rooms, floors]);
 
   if (isLoading) {
     return (
@@ -108,7 +114,7 @@ export function RoomSelectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="p-4 flex items-center gap-3">
@@ -128,71 +134,63 @@ export function RoomSelectionPage() {
 
       {/* Rooms Grid */}
       <div className="p-4">
-        {rooms.length === 0 ? (
+        {sortedRooms.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <p>Залы не найдены</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {rooms.map(room => (
-              <div
-                key={room.id}
-                onClick={() => navigate(`/r/${id}/booking/tables/${room.id}`)}
-                className="bg-white rounded-xl p-6 border-2 border-gray-200 cursor-pointer transition-all active:scale-[0.98] hover:border-rose-300"
-              >
-                <div className="flex items-start justify-between">
-                  <h2 className="flex-1">{room.name}</h2>
-                  <div className="flex gap-2 flex-wrap justify-end">
-                    {room.isSmoking ? (
-                      <Badge variant="outline" className="border-amber-300">
-                        <Cigarette className="w-4 h-4 mr-1 text-amber-600" />
-                        Курящий
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-green-300">
-                        <CigaretteOff className="w-4 h-4 mr-1 text-green-600" />
-                        Некурящий
-                      </Badge>
-                    )}
-                    {room.isOutdoor && (
-                      <Badge variant="outline" className="border-blue-300">
-                        <Sun className="w-4 h-4 mr-1 text-blue-600" />
-                        Открытый воздух
-                      </Badge>
-                    )}
+            {sortedRooms.map(room => {
+              const floor = floors.find(f => f.id === room.floorId);
+              return (
+                <div
+                  key={room.id}
+                  onClick={() => navigate(`/r/${id}/booking/tables/${room.id}`)}
+                  className="bg-white rounded-xl p-6 border-2 border-gray-200 cursor-pointer transition-all active:scale-[0.98] hover:border-rose-300"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h2 className="mb-1">{room.name}</h2>
+                      {floor && (
+                        <p className="text-sm text-gray-500">Этаж {floor.name}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      {room.isSmoking ? (
+                        <Badge variant="outline" className="border-amber-300">
+                          <Cigarette className="w-4 h-4 mr-1 text-amber-600" />
+                          Курящий
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-green-300">
+                          <CigaretteOff className="w-4 h-4 mr-1 text-green-600" />
+                          Некурящий
+                        </Badge>
+                      )}
+                      {room.isOutdoor && (
+                        <Badge variant="outline" className="border-blue-300">
+                          <Sun className="w-4 h-4 mr-1 text-blue-600" />
+                          Открытый воздух
+                        </Badge>
+                      )}
+                      {room.isLiveMusic && (
+                        <Badge variant="outline" className="border-purple-300">
+                          <Music className="w-4 h-4 mr-1 text-purple-600" />
+                          Живая музыка
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+                  {room.description && (
+                    <p className="text-gray-600 mt-2">{room.description}</p>
+                  )}
                 </div>
-                {room.description && (
-                  <p className="text-gray-600 mt-2">{room.description}</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Floor Selector */}
-      {floors.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-10">
-          <div className="flex justify-center gap-2 overflow-x-auto">
-            {floors.map(floor => (
-              <Button
-                key={floor.id}
-                variant={selectedFloorId === floor.id ? 'default' : 'outline'}
-                onClick={() => setSelectedFloorId(floor.id)}
-                style={
-                  selectedFloorId === floor.id
-                    ? { backgroundColor: restaurant.primaryColor }
-                    : {}
-                }
-                className="flex-shrink-0"
-              >
-                {floor.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

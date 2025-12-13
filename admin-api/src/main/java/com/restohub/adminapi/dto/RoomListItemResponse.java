@@ -13,6 +13,7 @@ public class RoomListItemResponse {
     private String description;
     private Boolean isSmoking;
     private Boolean isOutdoor;
+    private Boolean isLiveMusic;
     private Long imageId;
     private Integer tableCount;
     private Boolean isActive;

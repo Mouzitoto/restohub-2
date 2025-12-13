@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
-import { Calendar as CalendarIcon, Clock, Users, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, ShoppingCart } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { PreOrderModal } from './PreOrderModal';
@@ -29,7 +29,7 @@ interface PreOrderItem {
   specialRequests: string | null;
 }
 
-export function BookingForm({ restaurant, table, onClose, onBack }: BookingFormProps) {
+export function BookingForm({ restaurant, table }: BookingFormProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   
@@ -212,24 +212,10 @@ export function BookingForm({ restaurant, table, onClose, onBack }: BookingFormP
     <>
       <div className="flex-1 bg-white overflow-y-auto pb-20">
         <div className="p-4">
-          {/* Back Button */}
-          <div className="mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onBack || onClose}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Вернуться к карте столов
-            </Button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Table Photos */}
             {table.imageUrl && (
               <div className="space-y-2">
-                <h3>Фотография стола</h3>
                 <div 
                   className="aspect-video rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
                   onClick={() => setShowImageModal(true)}
@@ -244,8 +230,8 @@ export function BookingForm({ restaurant, table, onClose, onBack }: BookingFormP
             )}
 
             {/* Table Info */}
-            <Card className="p-4">
-              <h3 className="mb-3">Информация о столе</h3>
+            <Card className="px-4 py-[10px] gap-[10px]">
+              <h3 className="mb-1">Информация о столе</h3>
               <div className="space-y-2 text-gray-700">
                 <div className="flex justify-between">
                   <span>Номер стола:</span>
@@ -446,7 +432,7 @@ export function BookingForm({ restaurant, table, onClose, onBack }: BookingFormP
               <Input
                 id="specialRequests"
                 type="text"
-                placeholder="Например, стол у окна"
+                placeholder="Например, детский стульчик"
                 value={formData.specialRequests}
                 onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
                 onFocus={handleOtherFieldFocus}

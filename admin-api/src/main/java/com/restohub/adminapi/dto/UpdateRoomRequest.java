@@ -21,6 +21,8 @@ public class UpdateRoomRequest {
     
     private Boolean isOutdoor;
     
+    private Boolean isLiveMusic;
+    
     @ValidImageId
     private Long imageId;
 }

@@ -15,5 +15,6 @@ public class RoomResponse {
     private Long floorId;
     private Boolean isSmoking;
     private Boolean isOutdoor;
+    private Boolean isLiveMusic;
 }
 

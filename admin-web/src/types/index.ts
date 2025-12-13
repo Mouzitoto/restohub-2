@@ -118,6 +118,7 @@ export interface Room {
   description?: string
   isSmoking: boolean
   isOutdoor: boolean
+  isLiveMusic: boolean
   imageId?: number | null
   tableCount?: number
 }

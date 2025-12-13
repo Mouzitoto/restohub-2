@@ -5,7 +5,7 @@ import Modal from '../components/common/Modal'
 import ImageUpload from '../components/common/ImageUpload'
 import ImagePreview from '../components/common/ImagePreview'
 import RoomLayoutEditor from '../components/RoomLayoutEditor'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '../context/ToastContext'
@@ -14,10 +14,11 @@ import type { Room, Floor, RoomLayout } from '../types'
 
 const roomSchema = z.object({
   name: z.string().min(1, 'Название зала обязательно').max(255),
-  floorId: z.number().min(1, 'Выберите этаж'),
+  floorId: z.number().optional(),
   description: z.string().max(10000).optional(),
   isSmoking: z.boolean().optional(),
   isOutdoor: z.boolean().optional(),
+  isLiveMusic: z.boolean().optional(),
 })
 
 type RoomFormData = z.infer<typeof roomSchema>
@@ -40,11 +41,14 @@ export default function RoomsPage() {
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    control,
   } = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
     defaultValues: {
       isSmoking: false,
       isOutdoor: false,
+      isLiveMusic: false,
     },
   })
 
@@ -273,6 +277,7 @@ export default function RoomsPage() {
               <th style={{ padding: '1rem', textAlign: 'left' }}>Описание</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Курение</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>На открытом воздухе</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Живая музыка</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Количество столов</th>
               <th style={{ padding: '1rem' }}>Действия</th>
             </tr>
@@ -305,6 +310,9 @@ export default function RoomsPage() {
                 <td style={{ padding: '1rem' }}>
                   {room.isOutdoor ? 'Да' : 'Нет'}
                 </td>
+                <td style={{ padding: '1rem' }}>
+                  {room.isLiveMusic ? 'Да' : 'Нет'}
+                </td>
                 <td style={{ padding: '1rem' }}>{room.tableCount || 0}</td>
                 <td style={{ padding: '1rem' }}>
                   <button
@@ -312,13 +320,21 @@ export default function RoomsPage() {
                       setEditingRoom(room)
                       setImageId(room.imageId || null)
                       setImageFile(null)
+                      const floorIdValue = room.floorId ? Number(room.floorId) : undefined
                       reset({
                         name: room.name,
-                        floorId: room.floorId,
+                        floorId: floorIdValue,
                         description: room.description || '',
-                        isSmoking: room.isSmoking,
-                        isOutdoor: room.isOutdoor,
-                      })
+                        isSmoking: room.isSmoking ?? false,
+                        isOutdoor: room.isOutdoor ?? false,
+                        isLiveMusic: room.isLiveMusic ?? false,
+                      }, { keepDefaultValues: false })
+                      // Дополнительно устанавливаем значение через setValue для надежности
+                      if (floorIdValue) {
+                        setTimeout(() => {
+                          setValue('floorId', floorIdValue, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
+                        }, 100)
+                      }
                       setIsModalOpen(true)
                     }}
                     style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
@@ -376,14 +392,30 @@ export default function RoomsPage() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>Этаж *</label>
-            <select {...register('floorId', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-              <option value="">Выберите этаж</option>
-              {floors.map((floor) => (
-                <option key={floor.id} value={floor.id}>
-                  {floor.floorNumber}
-                </option>
-              ))}
-            </select>
+            <Controller
+              name="floorId"
+              control={control}
+              render={({ field }) => (
+                <select 
+                  value={field.value !== undefined && field.value !== null && field.value !== 0 ? String(field.value) : ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : undefined
+                    field.onChange(value)
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                >
+                  <option value="">Выберите этаж</option>
+                  {floors.map((floor) => (
+                    <option key={floor.id} value={floor.id}>
+                      {floor.floorNumber}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
             {errors.floorId && <div style={{ color: 'red' }}>{errors.floorId.message}</div>}
           </div>
 
@@ -403,6 +435,13 @@ export default function RoomsPage() {
             <label>
               <input type="checkbox" {...register('isOutdoor')} style={{ marginRight: '0.5rem' }} />
               На открытом воздухе
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              <input type="checkbox" {...register('isLiveMusic')} style={{ marginRight: '0.5rem' }} />
+              Живая музыка
             </label>
           </div>
 

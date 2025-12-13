@@ -32,6 +32,9 @@ public class Room extends BaseEntity {
     @Column(name = "is_outdoor", nullable = false)
     private Boolean isOutdoor = false;
     
+    @Column(name = "is_live_music", nullable = false)
+    private Boolean isLiveMusic = false;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "image_id")
     private Image image;
