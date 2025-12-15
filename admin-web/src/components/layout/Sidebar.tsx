@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 
 export default function Sidebar() {
-  const { role } = useApp()
+  const { role, currentRestaurant, restaurants } = useApp()
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -25,6 +25,10 @@ export default function Sidebar() {
     { path: '/admin/settings', label: 'Системные настройки', icon: '⚙️' },
   ]
 
+  // Для менеджеров: проверяем, можно ли показывать кнопки меню, требующие ресторан
+  const isManagerWithoutRestaurant = role === 'MANAGER' && (!currentRestaurant || restaurants.length === 0)
+  const shouldShowRestaurantMenuItems = role !== 'MANAGER' || !isManagerWithoutRestaurant
+
   return (
     <aside
       style={{
@@ -40,7 +44,7 @@ export default function Sidebar() {
       </div>
 
       <nav>
-        {menuItems.map((item) => (
+        {shouldShowRestaurantMenuItems && menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
