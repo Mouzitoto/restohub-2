@@ -409,18 +409,9 @@ export function MenuPage() {
                     }`}
                   >
                     <div 
-                      className="w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer"
+                      className="w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all"
                       style={{ 
                         borderColor: selectedFilter === category.id ? restaurant.primaryColor : '#e5e7eb'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const imageUrl = category.imageUrl || category.dishes[0]?.imageUrl;
-                        if (imageUrl) {
-                          // Заменяем превью на полное изображение
-                          const fullImageUrl = imageUrl.replace('?preview=true', '').replace('&preview=true', '');
-                          setSelectedImage({ url: fullImageUrl, alt: category.name });
-                        }
                       }}
                     >
                       <ImageWithFallback
