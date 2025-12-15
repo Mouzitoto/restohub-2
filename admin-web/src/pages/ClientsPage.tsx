@@ -160,7 +160,7 @@ export default function ClientsPage() {
                     <tr key={item.id}>
                       <td>{item.menuItemName}</td>
                       <td>{item.quantity}</td>
-                      <td>{item.price.toFixed(2)} ₽</td>
+                      <td>{item.price.toFixed(2)} ₸</td>
                     </tr>
                   ))}
                 </tbody>

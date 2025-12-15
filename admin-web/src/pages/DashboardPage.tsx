@@ -105,7 +105,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Выручка"
-          value={`${(overview?.revenue || 0).toLocaleString('ru-RU')} ₽`}
+          value={`${(overview?.revenue || 0).toLocaleString('ru-RU')} ₸`}
           icon="💰"
           onClick={() => navigate('/analytics')}
         />

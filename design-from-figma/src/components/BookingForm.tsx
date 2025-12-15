@@ -126,7 +126,7 @@ export function BookingForm({ restaurant, room, table, onClose, onBack }: Bookin
                   <div>
                     <h3 className="text-blue-900 mb-1">Условия бронирования</h3>
                     <p className="text-blue-800">
-                      Для бронирования этого стола требуется депозит: <span className="font-semibold">{table.deposit} ₽</span>
+                      Для бронирования этого стола требуется депозит: <span className="font-semibold">{table.deposit} ₸</span>
                     </p>
                     <p className="text-blue-700 mt-1">
                       Депозит будет зачтен в счет заказа при посещении ресторана.
@@ -257,12 +257,12 @@ export function BookingForm({ restaurant, room, table, onClose, onBack }: Bookin
                     {preOrderItems.map((item, index) => (
                       <div key={index} className="flex justify-between text-gray-700 mb-1">
                         <span>{item.name} x{item.quantity}</span>
-                        <span>{item.price * item.quantity} ₽</span>
+                        <span>{item.price * item.quantity} ₸</span>
                       </div>
                     ))}
                     <div className="border-t pt-2 mt-2 flex justify-between">
                       <span>Итого:</span>
-                      <span>{totalPreOrderCost} ₽</span>
+                      <span>{totalPreOrderCost} ₸</span>
                     </div>
                   </Card>
                 )}

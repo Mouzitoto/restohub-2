@@ -276,14 +276,14 @@ export default function MenuItemsPage() {
                     {item.discountPercent > 0 ? (
                       <div>
                         <span style={{ textDecoration: 'line-through', color: '#999' }}>
-                          {item.price.toFixed(2)} ₽
+                          {item.price.toFixed(2)} ₸
                         </span>
                         <span style={{ color: '#f44336', marginLeft: '0.5rem', fontWeight: 'bold' }}>
-                          {finalPrice.toFixed(2)} ₽
+                          {finalPrice.toFixed(2)} ₸
                         </span>
                       </div>
                     ) : (
-                      <span>{item.price.toFixed(2)} ₽</span>
+                      <span>{item.price.toFixed(2)} ₸</span>
                     )}
                   </td>
                   <td style={{ padding: '1rem' }}>
@@ -401,7 +401,7 @@ export default function MenuItemsPage() {
             <input type="number" min="0" max="100" {...register('discountPercent', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
             {discountPercent > 0 && (
               <div style={{ marginTop: '0.5rem' }}>
-                Финальная цена: <strong>{finalPrice.toFixed(2)} ₽</strong>
+                Финальная цена: <strong>{finalPrice.toFixed(2)} ₸</strong>
               </div>
             )}
           </div>

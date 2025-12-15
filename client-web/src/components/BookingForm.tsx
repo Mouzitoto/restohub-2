@@ -461,12 +461,12 @@ export function BookingForm({ restaurant, table }: BookingFormProps) {
                     {preOrderItems.map(item => (
                       <div key={item.menuItemId} className="flex justify-between text-sm">
                         <span>{item.name} × {item.quantity}</span>
-                        <span>{item.price * item.quantity} ₽</span>
+                        <span>{item.price * item.quantity} ₸</span>
                       </div>
                     ))}
                     <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
                       <span>Итого:</span>
-                      <span>{totalPreOrderCost} ₽</span>
+                      <span>{totalPreOrderCost} ₸</span>
                     </div>
                   </div>
                 </Card>

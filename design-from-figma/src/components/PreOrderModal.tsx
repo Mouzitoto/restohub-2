@@ -127,7 +127,7 @@ export function PreOrderModal({ restaurant, preOrderItems, onClose, onSave }: Pr
                               <h4>{dish.name}</h4>
                               <p className="text-gray-600 line-clamp-1">{dish.description}</p>
                               <p style={{ color: restaurant.primaryColor }}>
-                                {dish.price} ₽
+                                {dish.price} ₸
                               </p>
                             </div>
 
@@ -185,7 +185,7 @@ export function PreOrderModal({ restaurant, preOrderItems, onClose, onSave }: Pr
                         <div className="flex items-start gap-3 mb-3">
                           <div className="flex-1">
                             <h4>{item.name}</h4>
-                            <p className="text-gray-600">{item.price} ₽</p>
+                            <p className="text-gray-600">{item.price} ₸</p>
                           </div>
                           
                           <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export function PreOrderModal({ restaurant, preOrderItems, onClose, onSave }: Pr
                         />
 
                         <p className="text-right mt-2">
-                          Итого: {item.price * item.quantity} ₽
+                          Итого: {item.price * item.quantity} ₸
                         </p>
                       </div>
                     ))}
@@ -238,7 +238,7 @@ export function PreOrderModal({ restaurant, preOrderItems, onClose, onSave }: Pr
             <div className="flex justify-between items-center mb-3">
               <span>Общая сумма:</span>
               <span className="text-xl" style={{ color: restaurant.primaryColor }}>
-                {totalCost} ₽
+                {totalCost} ₸
               </span>
             </div>
             <Button

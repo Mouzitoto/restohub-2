@@ -219,7 +219,7 @@ export function MenuPage() {
             )}
             <div className="flex items-center justify-between">
               <p style={{ color: restaurant.primaryColor }}>
-                {dish.price} ₽
+                {dish.price} ₸
               </p>
             </div>
           </div>
@@ -258,7 +258,7 @@ export function MenuPage() {
         {itemInCart && (
           <div className="mt-2 pt-2 border-t">
             <p className="text-right" style={{ color: restaurant.primaryColor }}>
-              Сумма: {dish.price * itemInCart.quantity} ₽
+              Сумма: {dish.price * itemInCart.quantity} ₸
             </p>
           </div>
         )}
@@ -474,7 +474,7 @@ export function MenuPage() {
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-1">
                         <h3>{item.name}</h3>
-                        <p className="text-gray-600">{item.price} ₽</p>
+                        <p className="text-gray-600">{item.price} ₸</p>
                       </div>
                       
                       <div className="flex items-center gap-2">
@@ -514,7 +514,7 @@ export function MenuPage() {
                     />
 
                     <p className="text-right">
-                      Итого: <span style={{ color: restaurant.primaryColor }}>{item.price * item.quantity} ₽</span>
+                      Итого: <span style={{ color: restaurant.primaryColor }}>{item.price * item.quantity} ₸</span>
                     </p>
                   </Card>
                 ))}
@@ -582,7 +582,7 @@ export function MenuPage() {
                 <p className="text-gray-600">Сумма:</p>
               </div>
               <p className="text-2xl" style={{ color: restaurant.primaryColor }}>
-                {totalCost} ₽
+                {totalCost} ₸
               </p>
             </div>
 
@@ -632,11 +632,11 @@ export function MenuPage() {
                   <div className="flex-1">
                     <h3 className="mb-1">{index + 1}. {item.name}</h3>
                     <p className="text-gray-600">
-                      {item.price} ₽ × {item.quantity}
+                      {item.price} ₸ × {item.quantity}
                     </p>
                   </div>
                   <p style={{ color: restaurant.primaryColor }}>
-                    {item.price * item.quantity} ₽
+                    {item.price * item.quantity} ₸
                   </p>
                 </div>
                 
@@ -658,7 +658,7 @@ export function MenuPage() {
                 <p>Итого:</p>
               </div>
               <p className="text-2xl" style={{ color: restaurant.primaryColor }}>
-                {totalCost} ₽
+                {totalCost} ₸
               </p>
             </div>
 

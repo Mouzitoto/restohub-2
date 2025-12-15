@@ -22,7 +22,7 @@ export interface Table {
   description?: string;
   imageUrl?: string;
   images?: string[]; // Массив фотографий стола
-  deposit?: number; // Депозит в рублях
+  deposit?: number; // Депозит в тенге
   // Координаты на карте (в процентах)
   x: number;
   y: number;

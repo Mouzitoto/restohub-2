@@ -127,7 +127,7 @@ export function PreOrderModal({ restaurantId, onClose, onConfirm, initialItems =
                             <div className="flex-1 min-w-0">
                               <h4 className="mb-1">{dish.name}</h4>
                               <p className="text-gray-600 text-sm line-clamp-1">{dish.description}</p>
-                              <p className="text-gray-700 font-semibold mt-1">{dish.price} ₽</p>
+                              <p className="text-gray-700 font-semibold mt-1">{dish.price} ₸</p>
                             </div>
                             {itemInCart ? (
                               <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export function PreOrderModal({ restaurantId, onClose, onConfirm, initialItems =
               {cartItems.map(item => (
                 <div key={item.menuItemId} className="flex items-center justify-between text-sm">
                   <span className="flex-1">{item.name} × {item.quantity}</span>
-                  <span className="mr-2">{item.price * item.quantity} ₽</span>
+                  <span className="mr-2">{item.price * item.quantity} ₸</span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -199,7 +199,7 @@ export function PreOrderModal({ restaurantId, onClose, onConfirm, initialItems =
             </div>
             <div className="flex justify-between items-center font-semibold pt-2 border-t">
               <span>Итого:</span>
-              <span>{totalCost} ₽</span>
+              <span>{totalCost} ₸</span>
             </div>
           </div>
         )}

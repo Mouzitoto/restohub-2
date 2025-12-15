@@ -34,7 +34,7 @@ export function MenuSection({ category, restaurantColor }: MenuSectionProps) {
                   className="flex-shrink-0"
                   style={{ color: restaurantColor }}
                 >
-                  {dish.price} ₽
+                  {dish.price} ₸
                 </p>
               </div>
               

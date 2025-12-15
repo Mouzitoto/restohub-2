@@ -174,8 +174,8 @@ export default function BookingsPage() {
                                 <tr key={item.id}>
                                   <td>{item.menuItemName}</td>
                                   <td>{item.quantity}</td>
-                                  <td>{item.price.toFixed(2)} ₽</td>
-                                  <td>{(item.quantity * item.price).toFixed(2)} ₽</td>
+                                  <td>{item.price.toFixed(2)} ₸</td>
+                                  <td>{(item.quantity * item.price).toFixed(2)} ₸</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -185,7 +185,7 @@ export default function BookingsPage() {
                                   Итого:
                                 </td>
                                 <td style={{ fontWeight: 'bold' }}>
-                                  {preOrderItems.reduce((sum, item) => sum + item.quantity * item.price, 0).toFixed(2)} ₽
+                                  {preOrderItems.reduce((sum, item) => sum + item.quantity * item.price, 0).toFixed(2)} ₸
                                 </td>
                               </tr>
                             </tfoot>
