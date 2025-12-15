@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login", "/auth/logout", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password").permitAll()
                         .requestMatchers("/auth/register", "/auth/verify-email", "/auth/resend-verification-code", "/auth/terms").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/whatsapp/webhook").permitAll() // Публичный endpoint для WhatsApp webhook
+                        .requestMatchers("/booking/{id}/status").permitAll() // Публичный endpoint для изменения статуса (вызывается WhatsApp ботом)
                         .requestMatchers("/subscriptions/activate").hasAnyRole("1C", "ADMIN")
                         .anyRequest().authenticated()
                 )

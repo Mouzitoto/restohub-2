@@ -27,6 +27,7 @@ public class BookingService {
     private final BookingStatusRepository bookingStatusRepository;
     private final BookingHistoryRepository bookingHistoryRepository;
     private final UserRepository userRepository;
+    private final UserRestaurantRepository userRestaurantRepository;
     
     @Autowired
     public BookingService(
@@ -34,12 +35,14 @@ public class BookingService {
             RestaurantRepository restaurantRepository,
             BookingStatusRepository bookingStatusRepository,
             BookingHistoryRepository bookingHistoryRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            UserRestaurantRepository userRestaurantRepository) {
         this.bookingRepository = bookingRepository;
         this.restaurantRepository = restaurantRepository;
         this.bookingStatusRepository = bookingStatusRepository;
         this.bookingHistoryRepository = bookingHistoryRepository;
         this.userRepository = userRepository;
+        this.userRestaurantRepository = userRestaurantRepository;
     }
     
     public PaginationResponse<List<BookingListItemResponse>> getBookings(
@@ -200,6 +203,60 @@ public class BookingService {
             User user = userRepository.findById(userId).orElse(null);
             history.setChangedBy(user);
         }
+        history.setComment(null);
+        history.setCreatedAt(java.time.LocalDateTime.now());
+        bookingHistoryRepository.save(history);
+        
+        return toResponse(booking);
+    }
+    
+    /**
+     * Изменение статуса бронирования (для WhatsApp бота)
+     */
+    @Transactional
+    public BookingResponse changeStatus(Long bookingId, String status, Long managerId) {
+        // Получение бронирования
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("BOOKING_NOT_FOUND"));
+        
+        // Проверка текущего статуса (должен быть PENDING)
+        String currentStatusCode = booking.getBookingStatus().getCode();
+        if (!"PENDING".equals(currentStatusCode)) {
+            throw new RuntimeException("BOOKING_NOT_IN_PENDING_STATUS");
+        }
+        
+        // Валидация статуса
+        if (!"APPROVED".equals(status) && !"REJECTED".equals(status)) {
+            throw new RuntimeException("INVALID_STATUS");
+        }
+        
+        // Проверка существования менеджера
+        User manager = userRepository.findByIdAndIsActiveTrue(managerId)
+                .orElseThrow(() -> new RuntimeException("MANAGER_NOT_FOUND"));
+        
+        // Проверка принадлежности менеджера к ресторану
+        Long restaurantId = booking.getRestaurant().getId();
+        boolean hasAccess = userRestaurantRepository.findByRestaurantId(restaurantId).stream()
+                .anyMatch(ur -> ur.getUser().getId().equals(managerId));
+        if (!hasAccess) {
+            throw new RuntimeException("MANAGER_DOES_NOT_HAVE_ACCESS_TO_RESTAURANT");
+        }
+        
+        // Получение нового статуса
+        BookingStatus newStatus = bookingStatusRepository.findByCodeAndIsActiveTrue(status)
+                .orElseThrow(() -> new RuntimeException("STATUS_NOT_FOUND"));
+        
+        // Обновление статуса
+        booking.setBookingStatus(newStatus);
+        booking.setUpdatedAt(java.time.LocalDateTime.now());
+        booking = bookingRepository.save(booking);
+        
+        // Запись в историю
+        BookingHistory history = new BookingHistory();
+        history.setBooking(booking);
+        history.setBookingStatus(newStatus);
+        history.setChangedAt(java.time.LocalDateTime.now());
+        history.setChangedBy(manager);
         history.setComment(null);
         history.setCreatedAt(java.time.LocalDateTime.now());
         bookingHistoryRepository.save(history);

@@ -113,3 +113,20 @@ api:
 resend:
   from: ${RESEND_FROM:no-reply@restohub.kz}
 
+whatsapp:
+  api:
+    provider: ${WHATSAPP_PROVIDER:meta}  # meta, green-api, twilio
+    # Meta WhatsApp Business API настройки
+    app-id: ${WHATSAPP_APP_ID:}  # App ID из Meta for Developers
+    app-secret: ${WHATSAPP_APP_SECRET:}  # App Secret из Meta for Developers
+    access-token: ${WHATSAPP_ACCESS_TOKEN:}  # Access Token (долгоживущий)
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}  # Phone Number ID
+    business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:}  # WhatsApp Business Account ID
+    webhook-verify-token: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:}  # Токен для верификации webhook
+    webhook-url: ${WHATSAPP_WEBHOOK_URL:http://localhost:8082/admin-api/whatsapp/webhook}
+    bot-phone: ${WHATSAPP_BOT_PHONE:79991234567}  # Номер телефона бота (для ссылок)
+    base-url: ${WHATSAPP_API_BASE_URL:https://graph.facebook.com/v18.0}  # Graph API URL
+    # Обратная совместимость (для других провайдеров)
+    api-key: ${WHATSAPP_API_KEY:}  # Для green-api, twilio
+    api-secret: ${WHATSAPP_API_SECRET:}  # Для green-api, twilio
+
