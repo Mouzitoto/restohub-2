@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: resto-hub-postgres
+    container_name: resto-hub-local-postgres
     environment:
       POSTGRES_DB: restohub
       POSTGRES_USER: restohub
@@ -9,20 +9,21 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_local:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U restohub"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
 
   admin-api:
     build:
       context: ./admin-api
       dockerfile: Dockerfile
-    container_name: resto-hub-admin-api
+    image: resto-hub-local-admin-api:latest
+    container_name: resto-hub-local-admin-api
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/restohub
       DB_USER: restohub
@@ -43,13 +44,14 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
 
   client-api:
     build:
       context: ./client-api
       dockerfile: Dockerfile
-    container_name: resto-hub-client-api
+    image: resto-hub-local-client-api:latest
+    container_name: resto-hub-local-client-api
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/restohub
       DB_USER: restohub
@@ -70,7 +72,7 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
 
   client-web:
     build:
@@ -79,7 +81,8 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
         VITE_PARTNER_DOMAIN: ${VITE_PARTNER_DOMAIN:-http://partner.restohub.local}
-    container_name: resto-hub-client-web
+    image: resto-hub-local-client-web:latest
+    container_name: resto-hub-local-client-web
     ports:
       - "3000:80"
     depends_on:
@@ -91,7 +94,7 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
 
   admin-web:
     build:
@@ -99,7 +102,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://api.restohub.local}
-    container_name: resto-hub-admin-web
+    image: resto-hub-local-admin-web:latest
+    container_name: resto-hub-local-admin-web
     ports:
       - "3001:80"
     depends_on:
@@ -111,13 +115,14 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
 
   nginx:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: resto-hub-nginx
+    image: resto-hub-local-nginx:latest
+    container_name: resto-hub-local-nginx
     ports:
       - "80:80"
     environment:
@@ -138,14 +143,14 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - resto-hub-network
+      - resto-hub-local-network
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  maven-cache:
+  postgres_data_local:
+  maven-cache-local:
 
 networks:
-  resto-hub-network:
+  resto-hub-local-network:
     driver: bridge
 

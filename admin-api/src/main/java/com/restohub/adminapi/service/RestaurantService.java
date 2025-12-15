@@ -67,7 +67,8 @@ public class RestaurantService {
         // Нормализация телефонов
         String phone = PhoneValidator.normalize(request.getPhone());
         String whatsapp = request.getWhatsapp() != null ? PhoneValidator.normalize(request.getWhatsapp()) : null;
-        String instagram = request.getInstagram() != null ? InstagramValidator.normalize(request.getInstagram()) : null;
+        String instagram = request.getInstagram() != null && !request.getInstagram().trim().isEmpty() 
+            ? request.getInstagram().trim().replaceFirst("^@", "") : null;
         
         // Проверка изображений
         Image logoImage = null;
@@ -252,8 +253,10 @@ public class RestaurantService {
         if (request.getWhatsapp() != null) {
             restaurant.setWhatsapp(PhoneValidator.normalize(request.getWhatsapp()));
         }
-        if (request.getInstagram() != null) {
-            restaurant.setInstagram(InstagramValidator.normalize(request.getInstagram()));
+        if (request.getInstagram() != null && !request.getInstagram().trim().isEmpty()) {
+            // Убираем @ если есть, сохраняем только username
+            String instagram = request.getInstagram().trim().replaceFirst("^@", "");
+            restaurant.setInstagram(instagram);
         }
         if (request.getDescription() != null) {
             restaurant.setDescription(request.getDescription());

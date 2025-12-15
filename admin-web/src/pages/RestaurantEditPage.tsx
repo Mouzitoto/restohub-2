@@ -40,6 +40,25 @@ const formatPhoneForMask = (value: string): string => {
   return value
 }
 
+// Функция для извлечения username из Instagram ссылки или username
+const extractInstagramUsername = (value: string | null | undefined): string => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  // Если это URL, извлекаем username
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (trimmed.includes('instagram.com/')) {
+      const username = trimmed.substring(trimmed.indexOf('instagram.com/') + 'instagram.com/'.length)
+      // Удаляем возможные параметры и слэши
+      return username.split('?')[0].split('/')[0]
+    }
+  }
+  // Если это username с @, убираем @
+  if (trimmed.startsWith('@')) {
+    return trimmed.substring(1)
+  }
+  return trimmed
+}
+
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Название ресторана обязательно').max(255),
   address: z.string().max(500).optional(),
@@ -57,7 +76,15 @@ const restaurantSchema = z.object({
       const normalized = normalizePhone(val)
       return /^(\+7|8)\d{10}$/.test(normalized)
     }, { message: 'Введите корректный номер телефона (формат: +7 (999) 123-45-67)' }),
-  instagram: z.string().regex(/^https?:\/\/(www\.)?instagram\.com\/[\w.]+$/, 'Введите корректную ссылку на Instagram').optional(),
+  instagram: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val || val === '') return true
+      // Принимаем только username: буквы, цифры, точки, подчеркивания
+      // Убираем @ если есть
+      const cleaned = val.trim().replace(/^@/, '')
+      return /^[a-zA-Z0-9._]+$/.test(cleaned)
+    }, { message: 'Введите корректный username Instagram (только буквы, цифры, точки и подчеркивания)' }),
   description: z.string().max(10000).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -114,7 +141,7 @@ export default function RestaurantEditPage() {
         address: data.address || '',
         phone: data.phone || '',
         whatsapp: data.whatsapp || '',
-        instagram: data.instagram || '',
+        instagram: extractInstagramUsername(data.instagram),
         description: data.description || '',
         latitude: data.latitude || undefined,
         longitude: data.longitude || undefined,
@@ -148,11 +175,14 @@ export default function RestaurantEditPage() {
 
     setIsLoading(true)
     try {
-      // Нормализуем телефоны перед отправкой
+      // Нормализуем телефоны и Instagram перед отправкой
       const normalizedData = {
         ...data,
         phone: data.phone ? normalizePhone(data.phone) : '',
         whatsapp: data.whatsapp ? normalizePhone(data.whatsapp) : '',
+        instagram: data.instagram && data.instagram.trim() 
+          ? data.instagram.trim().replace(/^@/, '') 
+          : undefined,
       }
       
       // Теперь logoImageId и bgImageId не нужно отправлять, так как они загружаются отдельно
@@ -462,7 +492,8 @@ export default function RestaurantEditPage() {
 
             <div style={{ marginBottom: '1rem' }}>
               <label>Instagram</label>
-              <input {...register('instagram')} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              <input {...register('instagram')} placeholder="username" style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+              {errors.instagram && <div style={{ color: 'red' }}>{errors.instagram.message}</div>}
             </div>
 
             <div style={{ marginBottom: '1rem' }}>

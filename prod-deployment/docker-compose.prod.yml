@@ -173,7 +173,7 @@ services:
       PARTNER_DOMAIN: ${PARTNER_DOMAIN:-partner.restohub.local}
       API_DOMAIN: ${API_DOMAIN:-api.restohub.local}
     volumes:
-      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx-ssl.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - client-web

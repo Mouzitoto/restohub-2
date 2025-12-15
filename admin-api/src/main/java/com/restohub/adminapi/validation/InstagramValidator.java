@@ -15,20 +15,19 @@ public class InstagramValidator implements ConstraintValidator<Instagram, String
             return true; // null проверяется через @NotNull или nullable
         }
         
-        // Принимаем: username, @username, https://instagram.com/username, https://www.instagram.com/username
+        // Принимаем только username: буквы, цифры, точки, подчеркивания
+        // Убираем @ если есть
         String trimmed = instagram.trim();
-        
-        // Если это URL
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-            return trimmed.contains("instagram.com/");
-        }
-        
-        // Если это username (может быть с @ или без)
         if (trimmed.startsWith("@")) {
             trimmed = trimmed.substring(1);
         }
         
         // Username должен содержать только буквы, цифры, точки и подчеркивания
+        // Не принимаем URL
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return false;
+        }
+        
         return trimmed.matches("^[a-zA-Z0-9._]+$");
     }
     

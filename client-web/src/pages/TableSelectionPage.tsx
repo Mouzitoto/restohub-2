@@ -203,26 +203,26 @@ export function TableSelectionPage() {
         </div>
       )}
       
-      {/* Header */}
-      <div className={`bg-white border-b sticky ${selectedTable ? 'top-[65px]' : 'top-0'} z-20`}>
-        <div className="p-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(`/r/${id}/booking/rooms`)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold">
-                {selectedTable ? `Стол ${selectedTable.tableNumber}` : 'Выберите стол'}
-              </h1>
-              <p className="text-gray-600 text-sm">{room.name}</p>
+      {/* Header - показывается только когда стол не выбран */}
+      {!selectedTable && (
+        <div className="bg-white border-b sticky top-0 z-20">
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/r/${id}/booking/rooms`)}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-xl font-semibold">Выберите стол</h1>
+                <p className="text-gray-600 text-sm">{room.name}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {selectedTable ? (

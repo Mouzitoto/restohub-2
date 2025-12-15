@@ -272,7 +272,7 @@ export function BookingForm({ restaurant, table }: BookingFormProps) {
                 {showDatePicker && (
                   <div
                     ref={datePickerRef}
-                    className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 w-auto"
+                    className="absolute top-full left-0 mt-2 bg-gray-100 border border-gray-300 rounded-lg shadow-xl z-50 p-4 w-auto"
                   >
                     <Calendar
                       mode="single"
@@ -322,7 +322,7 @@ export function BookingForm({ restaurant, table }: BookingFormProps) {
                 {showTimePicker && (
                   <div
                     ref={timePickerRef}
-                    className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 w-auto min-w-[320px]"
+                    className="absolute top-full right-0 mt-2 bg-gray-100 border border-gray-300 rounded-lg shadow-xl z-50 p-4 w-auto min-w-[320px]"
                   >
                     <div className="grid grid-cols-2 gap-4">
                       {/* Hours Column */}
@@ -393,7 +393,7 @@ export function BookingForm({ restaurant, table }: BookingFormProps) {
                 {showPersonCountPicker && (
                   <div
                     ref={personCountPickerRef}
-                    className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 w-auto min-w-[200px]"
+                    className="absolute top-full left-0 mt-2 bg-gray-100 border border-gray-300 rounded-lg shadow-xl z-50 p-4 w-auto min-w-[200px]"
                   >
                     <div className="text-sm font-semibold mb-2 text-gray-700">Количество гостей</div>
                     <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

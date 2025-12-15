@@ -17,6 +17,7 @@
     <include file="changesets/V10__insert_promotion_types.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V11__promotion_recurrence_days_array.sql" relativeToChangelogFile="true"/>
     <include file="changesets/V12__menu_items_is_available.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/V13__rooms_is_live_music.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
 

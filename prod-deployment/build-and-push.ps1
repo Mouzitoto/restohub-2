@@ -7,14 +7,27 @@ param(
 )
 
 # Установка кодировки UTF-8 для корректного отображения
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
-if ($PSVersionTable.PSVersion.Major -ge 6) {
-    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-}
 
 $ErrorActionPreference = "Stop"
+
+# Установка переменных окружения по умолчанию (если не заданы)
+if (-not $env:DOCKER_HUB_USERNAME) {
+    $env:DOCKER_HUB_USERNAME = "mouzitoto"
+}
+if (-not $env:DOCKER_HUB_REPO) {
+    $env:DOCKER_HUB_REPO = "resto-hub-repo"
+}
+if (-not $env:VITE_API_BASE_URL) {
+    $env:VITE_API_BASE_URL = "https://api.restohub.kz"
+}
+if (-not $env:VITE_PARTNER_DOMAIN) {
+    $env:VITE_PARTNER_DOMAIN = "https://partner.restohub.kz"
+}
 
 # Проверка переменных окружения
 if (-not $env:DOCKER_HUB_USERNAME) {
