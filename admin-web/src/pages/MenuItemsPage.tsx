@@ -15,7 +15,7 @@ const menuItemSchema = z.object({
   name: z.string().min(1, 'Название блюда обязательно').max(255),
   description: z.string().max(10000).optional(),
   ingredients: z.string().max(10000).optional(),
-  price: z.number().min(0.01, 'Цена должна быть больше 0'),
+  price: z.number().int().min(1, 'Цена должна быть целым числом больше 0'),
   menuCategoryId: z.number().min(1, 'Выберите категорию'),
   discountPercent: z.number().min(0).max(100).optional(),
   spicinessLevel: z.number().min(0).max(5).optional(),
@@ -53,7 +53,9 @@ export default function MenuItemsPage() {
 
   const price = watch('price') || 0
   const discountPercent = watch('discountPercent') || 0
-  const finalPrice = price * (1 - discountPercent / 100)
+  const finalPrice = discountPercent > 0 
+    ? Math.ceil(price * (1 - discountPercent / 100))
+    : price
 
   useEffect(() => {
     if (currentRestaurant) {
@@ -245,7 +247,9 @@ export default function MenuItemsPage() {
           </thead>
           <tbody>
             {items.map((item) => {
-              const finalPrice = item.price * (1 - item.discountPercent / 100)
+              const finalPrice = item.discountPercent > 0
+                ? Math.ceil(item.price * (1 - item.discountPercent / 100))
+                : item.price
               return (
                 <tr key={item.id} style={{ borderTop: '1px solid #eee' }}>
                   <td style={{ padding: '1rem' }}>
@@ -280,14 +284,14 @@ export default function MenuItemsPage() {
                     {item.discountPercent > 0 ? (
                       <div>
                         <span style={{ textDecoration: 'line-through', color: '#999' }}>
-                          {item.price.toFixed(2)} ₸
+                          {item.price} ₸
                         </span>
                         <span style={{ color: '#f44336', marginLeft: '0.5rem', fontWeight: 'bold' }}>
-                          {finalPrice.toFixed(2)} ₸
+                          {finalPrice} ₸
                         </span>
                       </div>
                     ) : (
-                      <span>{item.price.toFixed(2)} ₸</span>
+                      <span>{item.price} ₸</span>
                     )}
                   </td>
                   <td style={{ padding: '1rem' }}>
@@ -396,7 +400,7 @@ export default function MenuItemsPage() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>Цена *</label>
-            <input type="number" step="0.01" {...register('price', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            <input type="number" step="1" min="1" {...register('price', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
             {errors.price && <div style={{ color: 'red' }}>{errors.price.message}</div>}
           </div>
 
@@ -405,7 +409,7 @@ export default function MenuItemsPage() {
             <input type="number" min="0" max="100" {...register('discountPercent', { valueAsNumber: true })} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
             {discountPercent > 0 && (
               <div style={{ marginTop: '0.5rem' }}>
-                Финальная цена: <strong>{finalPrice.toFixed(2)} ₸</strong>
+                Финальная цена: <strong>{finalPrice} ₸</strong>
               </div>
             )}
           </div>

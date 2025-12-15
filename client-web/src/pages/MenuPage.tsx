@@ -255,13 +255,6 @@ export function MenuPage() {
             </Button>
           )}
         </div>
-        {itemInCart && (
-          <div className="mt-2 pt-2 border-t">
-            <p className="text-right" style={{ color: restaurant.primaryColor }}>
-              Сумма: {dish.price * itemInCart.quantity} ₸
-            </p>
-          </div>
-        )}
       </Card>
     );
   };
@@ -275,7 +268,13 @@ export function MenuPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/r/${id}`)}
+              onClick={() => {
+                if (showCart) {
+                  setShowCart(false);
+                } else {
+                  navigate(`/r/${id}`);
+                }
+              }}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -283,19 +282,19 @@ export function MenuPage() {
               <h1>Меню</h1>
               <p className="text-gray-600">{restaurant.name}</p>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowCart(!showCart)}
-              className="relative"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cartItems.length > 0 && (
+            {cartItems.length > 0 && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowCart(!showCart)}
+                className="relative"
+              >
+                <ShoppingCart className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white rounded-full text-xs flex items-center justify-center">
                   {cartItems.length}
                 </span>
-              )}
-            </Button>
+              </Button>
+            )}
           </div>
 
           {/* Category filters with images */}
