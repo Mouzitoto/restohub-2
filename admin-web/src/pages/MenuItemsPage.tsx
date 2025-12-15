@@ -67,7 +67,11 @@ export default function MenuItemsPage() {
       const response = await apiClient.instance.get<PaginationResponse<MenuCategory[]>>(
         '/admin-api/menu-category'
       )
-      setCategories(response.data.data)
+      // Сортируем категории по алфавиту
+      const sortedCategories = [...response.data.data].sort((a, b) => 
+        a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' })
+      )
+      setCategories(sortedCategories)
     } catch (error) {
       toast.error('Не удалось загрузить категории')
     }
